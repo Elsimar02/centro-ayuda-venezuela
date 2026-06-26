@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; }
@@ -42,15 +43,11 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 8.8C5 13.5 12 21 12 21C12 21 19 13.5 19 8.8C19 5 16 2 12 2Z" fill="#fff"/><circle cx="12" cy="8.6" r="2.6" fill="var(--accent)"/></svg>
       </div>
       <div style="min-width:0">
-        <div style="font-weight:800;font-size:14.5px;letter-spacing:-0.2px;line-height:1.1;white-space:nowrap">Centro de Coordinación</div>
-        <div style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap">{{ cityLabel }} · respuesta a emergencias</div>
+        <div style="font-weight:800;font-size:14.5px;letter-spacing:-0.2px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Centro de Coordinación</div>
+        <div style="{{ topSubtitleDisplay }}font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap">{{ cityLabel }} · respuesta a emergencias</div>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-      <div style="display:flex;padding:3px;border-radius:12px;background:var(--surface-3);border:1px solid var(--border-2)">
-        <button onClick="{{ goApp }}" style="border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:9px;background:{{ appTabBg }};color:{{ appTabFg }};box-shadow:{{ appTabShadow }};transition:all .2s">📱 App</button>
-        <button onClick="{{ goAdmin }}" style="border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:9px;background:{{ adminTabBg }};color:{{ adminTabFg }};box-shadow:{{ adminTabShadow }};transition:all .2s">🖥 Panel</button>
-      </div>
       <button onClick="{{ toggleTheme }}" title="Cambiar tema" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--fg);box-shadow:var(--shadow-sm)">
         <span style="font-size:16px">{{ themeIcon }}</span>
       </button>
@@ -59,9 +56,9 @@
 
   <!-- ░░░░░░░░░░░░░░░░ MOBILE APP ░░░░░░░░░░░░░░░░ -->
   <sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
-  <div style="display:flex;justify-content:center;padding:34px 16px 60px;min-height:calc(100vh - 66px)">
-    <div style="position:relative;filter:drop-shadow(0 30px 60px rgba(16,20,30,0.22))">
-      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ isDark }}" hint-size="402px,874px">
+  <div style="display:flex;justify-content:center;padding:{{ devicePad }};min-height:calc(100vh - 66px)">
+    <div style="position:relative;filter:{{ deviceShadow }}">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ isDark }}" width="{{ deviceWidth }}" height="{{ deviceHeight }}" radius="{{ deviceRadius }}" hint-size="402px,874px">
 
         <div id="ccc-app" style="position:relative;height:100%;width:100%;overflow:hidden;background:var(--surface-2);isolation:isolate">
 
@@ -94,6 +91,17 @@
               </button>
             </sc-for>
           </div>
+
+          <!-- data status banner -->
+          <sc-if value="{{ showLoadingBanner }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:200px;left:13px;right:13px;z-index:27;padding:10px 14px;border-radius:12px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow-sm);font-size:12.5px;font-weight:600;color:var(--muted);text-align:center">Cargando reportes…</div>
+          </sc-if>
+          <sc-if value="{{ showDbErrorBanner }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:200px;left:13px;right:13px;z-index:27;padding:10px 14px;border-radius:12px;background:rgba(220,38,38,0.12);border:1px solid rgba(220,38,38,0.3);box-shadow:var(--shadow-sm);font-size:12.5px;font-weight:700;color:#dc2626;text-align:center">{{ dbError }}</div>
+          </sc-if>
+          <sc-if value="{{ showEmptyBanner }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:200px;left:13px;right:13px;z-index:27;padding:10px 14px;border-radius:12px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow-sm);font-size:12.5px;font-weight:600;color:var(--muted);text-align:center">Sin reportes todavía · sé el primero en reportar</div>
+          </sc-if>
 
           <!-- right rail: locate + legend -->
           <div style="position:absolute;right:13px;bottom:206px;z-index:28;display:flex;flex-direction:column;gap:9px">
@@ -244,13 +252,21 @@
                       <span style="flex:1"><span style="display:block;font-weight:700;font-size:14px">Usar mi ubicación GPS</span><span style="display:block;font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">{{ gpsCoords }} · ±12 m</span></span>
                       <span style="width:22px;height:22px;border-radius:50%;border:2px solid {{ gpsRing }};display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ gpsCheck }}</span>
                     </button>
-                    <button onClick="{{ setManual }}" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;cursor:pointer;text-align:left;background:{{ manBg }};border:1.5px solid {{ manBorder }}">
+                    <button onClick="{{ setManual }}" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;cursor:pointer;text-align:left;margin-bottom:10px;background:{{ manBg }};border:1.5px solid {{ manBorder }}">
                       <span style="width:38px;height:38px;border-radius:11px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:18px">✏️</span>
-                      <span style="flex:1"><span style="display:block;font-weight:700;font-size:14px">Ingresar dirección manualmente</span><span style="display:block;font-size:12px;color:var(--muted)">Barrio, calle o referencia</span></span>
+                      <span style="flex:1"><span style="display:block;font-weight:700;font-size:14px">Ingresar dirección</span><span style="display:block;font-size:12px;color:var(--muted)">Sé la calle, barrio o avenida exacta</span></span>
                       <span style="width:22px;height:22px;border-radius:50%;border:2px solid {{ manRing }};display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ manCheck }}</span>
                     </button>
                     <sc-if value="{{ draftManual }}" hint-placeholder-val="{{ false }}">
-                      <input value="{{ draft.manual }}" onInput="{{ onManual }}" placeholder="Ej. Calle Real de Macuto, frente a la plaza" style="width:100%;margin-top:10px;height:48px;padding:0 14px;border-radius:13px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;outline:none"/>
+                      <input value="{{ draft.manual }}" onInput="{{ onManual }}" placeholder="Ej. Calle Real de Macuto, frente a la plaza" style="width:100%;margin-bottom:10px;height:48px;padding:0 14px;border-radius:13px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;outline:none"/>
+                    </sc-if>
+                    <button onClick="{{ setRef }}" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;cursor:pointer;text-align:left;background:{{ refBg }};border:1.5px solid {{ refBorder }}">
+                      <span style="width:38px;height:38px;border-radius:11px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:18px">📍</span>
+                      <span style="flex:1"><span style="display:block;font-weight:700;font-size:14px">No sé la dirección, doy una referencia</span><span style="display:block;font-size:12px;color:var(--muted)">Ej. "cerca de", "al lado de"</span></span>
+                      <span style="width:22px;height:22px;border-radius:50%;border:2px solid {{ refRing }};display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ refCheck }}</span>
+                    </button>
+                    <sc-if value="{{ draftRef }}" hint-placeholder-val="{{ false }}">
+                      <input value="{{ draft.reference }}" onInput="{{ onReference }}" placeholder="Ej. Cerca de la panadería, al lado de la cancha" style="width:100%;margin-top:10px;height:48px;padding:0 14px;border-radius:13px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;outline:none"/>
                     </sc-if>
                   </div>
                 </sc-if>
@@ -258,19 +274,29 @@
                 <!-- STEP 2: detalles -->
                 <sc-if value="{{ rs2 }}" hint-placeholder-val="{{ false }}">
                   <div style="animation:ccfade .25s ease">
+                    <sc-for list="{{ extraFields }}" as="f" hint-placeholder-count="3">
+                      <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin-bottom:7px">{{ f.label }}</label>
+                      <input value="{{ f.value }}" onInput="{{ f.onInput }}" placeholder="{{ f.placeholder }}" style="width:100%;height:48px;padding:0 14px;border-radius:13px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;outline:none;margin-bottom:10px"/>
+                    </sc-for>
+
                     <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin-bottom:7px">Describe la situación</label>
                     <textarea value="{{ draft.desc }}" onInput="{{ onDesc }}" placeholder="Ej. Hay personas atrapadas bajo escombros en una vivienda de 2 pisos. Se escuchan voces." style="width:100%;height:108px;padding:13px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;line-height:1.5;outline:none;resize:none"></textarea>
 
-                    <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin:18px 0 9px">Personas afectadas (aprox.)</label>
-                    <div style="display:flex;align-items:center;gap:14px">
-                      <button onClick="{{ decPeople }}" style="width:46px;height:46px;border-radius:13px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;font-size:22px;color:var(--fg)">−</button>
-                      <div style="flex:1;text-align:center;font-weight:800;font-size:24px">{{ draft.people }}</div>
-                      <button onClick="{{ incPeople }}" style="width:46px;height:46px;border-radius:13px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;font-size:22px;color:var(--fg)">+</button>
-                    </div>
+                    <sc-if value="{{ showPeopleCount }}" hint-placeholder-val="{{ true }}">
+                      <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin:18px 0 9px">Personas afectadas (aprox.)</label>
+                      <div style="display:flex;align-items:center;gap:14px">
+                        <button onClick="{{ decPeople }}" style="width:46px;height:46px;border-radius:13px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;font-size:22px;color:var(--fg)">−</button>
+                        <div style="flex:1;text-align:center;font-weight:800;font-size:24px">{{ draft.people }}</div>
+                        <button onClick="{{ incPeople }}" style="width:46px;height:46px;border-radius:13px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;font-size:22px;color:var(--fg)">+</button>
+                      </div>
+                    </sc-if>
 
                     <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin:18px 0 9px">Adjuntar evidencia (opcional)</label>
                     <div style="display:flex;gap:9px">
-                      <button onClick="{{ addPhoto }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:13px;border:1.5px dashed var(--border);background:var(--surface-2);cursor:pointer;color:var(--fg-2);font-family:inherit;font-weight:700;font-size:12px"><span style="font-size:20px">📷</span>Foto</button>
+                      <label style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:13px;border:1.5px dashed var(--border);background:var(--surface-2);cursor:pointer;color:var(--fg-2);font-family:inherit;font-weight:700;font-size:12px">
+                        <input type="file" accept="image/*" onChange="{{ onPhotoFile }}" style="display:none" disabled="{{ uploadingPhoto }}"/>
+                        <span style="font-size:20px">📷</span>{{ uploadingPhoto ? 'Subiendo…' : 'Foto' }}
+                      </label>
                       <button onClick="{{ addVideo }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:13px;border:1.5px dashed var(--border);background:var(--surface-2);cursor:pointer;color:var(--fg-2);font-family:inherit;font-weight:700;font-size:12px"><span style="font-size:20px">🎥</span>Video</button>
                       <button onClick="{{ addAudio }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:13px;border:1.5px dashed var(--border);background:var(--surface-2);cursor:pointer;color:var(--fg-2);font-family:inherit;font-weight:700;font-size:12px"><span style="font-size:20px">🎙️</span>Audio</button>
                     </div>
@@ -320,7 +346,7 @@
                       </div>
                     </div>
                     <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface-2);overflow:hidden">
-                      <div style="padding:13px 15px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--border-2)"><span style="width:42px;height:42px;border-radius:12px;background:{{ revColorSoft }};display:flex;align-items:center;justify-content:center;font-size:21px">{{ revEmoji }}</span><span><span style="display:block;font-weight:800;font-size:14.5px">{{ revLabel }}</span><span style="display:block;font-size:12px;color:var(--muted)">{{ revUrg }} · {{ revPeople }} persona(s)</span></span></div>
+                      <div style="padding:13px 15px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--border-2)"><span style="width:42px;height:42px;border-radius:12px;background:{{ revColorSoft }};display:flex;align-items:center;justify-content:center;font-size:21px">{{ revEmoji }}</span><span><span style="display:block;font-weight:800;font-size:14.5px">{{ revLabel }}</span><span style="display:block;font-size:12px;color:var(--muted)">{{ revSubtitle }}</span></span></div>
                       <div style="padding:13px 15px;font-size:13px;line-height:1.5;color:var(--fg-2);border-bottom:1px solid var(--border-2)">{{ revDesc }}</div>
                       <div style="padding:11px 15px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)">📍 {{ revPlace }}</div>
                     </div>
@@ -421,16 +447,17 @@
 
   <!-- ░░░░░░░░░░░░░░░░ ADMIN DASHBOARD ░░░░░░░░░░░░░░░░ -->
   <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
-  <div style="display:flex;min-height:calc(100vh - 66px)">
+  <div style="display:flex;flex-direction:{{ adminOuterDir }};min-height:calc(100vh - 66px)">
     <!-- sidebar -->
-    <aside style="width:236px;flex-shrink:0;border-right:1px solid var(--border);padding:22px 16px;display:flex;flex-direction:column;gap:6px;background:var(--surface)">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);padding:0 10px 8px">Coordinación</div>
+    <aside class="{{ adminAsideClass }}" style="{{ adminAsideStyle }}">
+      <sc-if value="{{ !isNarrow }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);padding:0 10px 8px;white-space:nowrap">Coordinación</div></sc-if>
       <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="6">
-        <button onClick="{{ n.onTap }}" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;text-align:left;background:{{ n.bg }};color:{{ n.fg }}">
-          <span style="font-size:16px;width:20px;text-align:center">{{ n.icon }}</span>{{ n.label }}
+        <button onClick="{{ n.onTap }}" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;text-align:left;white-space:nowrap;flex-shrink:0;background:{{ n.bg }};color:{{ n.fg }}">
+          <span style="font-size:16px;width:20px;text-align:center">{{ n.icon }}</span><span style="{{ navLabelDisplay }}">{{ n.label }}</span>
           <sc-if value="{{ n.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto;font-size:10.5px;font-weight:800;background:var(--accent);color:#fff;padding:2px 7px;border-radius:7px">{{ n.badge }}</span></sc-if>
         </button>
       </sc-for>
+      <sc-if value="{{ !isNarrow }}" hint-placeholder-val="{{ true }}">
       <div style="flex:1"></div>
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:8px">
         <div style="display:flex;align-items:center;gap:10px;padding:6px 8px">
@@ -438,10 +465,11 @@
           <div style="min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">M. Rodríguez</div><div style="font-size:11px;color:var(--muted)">Moderador</div></div>
         </div>
       </div>
+      </sc-if>
     </aside>
 
     <!-- main -->
-    <main class="hs" style="flex:1;min-width:0;overflow-y:auto;max-height:calc(100vh - 66px);padding:24px 28px 60px">
+    <main class="hs" style="flex:1;min-width:0;overflow-y:auto;max-height:{{ adminMainMaxH }};padding:{{ adminMainPad }}">
       <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:22px">
         <div>
           <div style="display:flex;align-items:center;gap:10px"><h1 style="margin:0;font-size:25px;font-weight:800;letter-spacing:-0.5px">Centro de operaciones</h1><span style="display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#16a34a;background:rgba(22,163,74,0.12);padding:5px 10px;border-radius:8px"><span style="width:7px;height:7px;border-radius:50%;background:#16a34a;animation:ccblink 1.6s infinite"></span>EN VIVO</span></div>
@@ -456,9 +484,11 @@
             </div>
             <span style="font-size:12.5px;font-weight:700">{{ connectedUsers }} conectados</span>
           </div>
+          <button onClick="{{ openReportFromAdmin }}" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:11px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 14px var(--accent-soft)">+ Nuevo reporte</button>
         </div>
       </div>
 
+      <sc-if value="{{ secResumen }}" hint-placeholder-val="{{ true }}">
       <!-- stat cards -->
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px">
         <sc-for list="{{ statCards }}" as="s" hint-placeholder-count="5">
@@ -533,6 +563,60 @@
           </div>
         </div>
       </div>
+      </sc-if>
+
+      <!-- sección Reportes: lista completa, sin límite de 6 -->
+      <sc-if value="{{ secReportes }}" hint-placeholder-val="{{ false }}">
+      <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden">
+        <div style="padding:15px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)"><span style="font-weight:800;font-size:14.5px">Todos los reportes</span><span style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">{{ totalReports }} en total</span></div>
+        <sc-if value="{{ !hasAllReports }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px">Sin reportes todavía.</div>
+        </sc-if>
+        <sc-for list="{{ allReportsRows }}" as="r" hint-placeholder-count="10">
+          <div style="display:flex;align-items:center;gap:13px;padding:12px 18px;border-bottom:1px solid var(--border-2)">
+            <span style="width:38px;height:38px;border-radius:11px;background:{{ r.colorSoft }};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">{{ r.emoji }}</span>
+            <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.catLabel }}</div><div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.place }} · {{ r.time }}</div></div>
+            <span style="font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:7px;background:{{ r.statusSoft }};color:{{ r.statusColor }};flex-shrink:0">{{ r.statusLabel }}</span>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button onClick="{{ r.onVerify }}" title="Marcar verificado" style="width:32px;height:32px;border-radius:9px;border:1px solid rgba(22,163,74,0.3);background:rgba(22,163,74,0.08);color:#15803d;cursor:pointer;font-size:14px">✓</button>
+              <button onClick="{{ r.onFalse }}" title="Marcar falso / spam" style="width:32px;height:32px;border-radius:9px;border:1px solid rgba(220,38,38,0.3);background:rgba(220,38,38,0.08);color:#b91c1c;cursor:pointer;font-size:14px">⚑</button>
+              <button onClick="{{ r.onDelete }}" title="Eliminar" style="width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);cursor:pointer;font-size:14px">🗑</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- sección Moderación: solo lo pendiente de verificar -->
+      <sc-if value="{{ secModeracion }}" hint-placeholder-val="{{ false }}">
+      <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden">
+        <div style="padding:15px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)"><span style="font-weight:800;font-size:14.5px">Pendientes de verificar</span><span style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">{{ pendingRows.length }} reporte(s)</span></div>
+        <sc-if value="{{ !hasPendingRows }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px">No hay reportes pendientes de moderación. 🎉</div>
+        </sc-if>
+        <sc-for list="{{ pendingRows }}" as="r" hint-placeholder-count="6">
+          <div style="display:flex;align-items:center;gap:13px;padding:12px 18px;border-bottom:1px solid var(--border-2)">
+            <span style="width:38px;height:38px;border-radius:11px;background:{{ r.colorSoft }};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">{{ r.emoji }}</span>
+            <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.catLabel }}</div><div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.place }} · {{ r.time }}</div></div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button onClick="{{ r.onVerify }}" title="Marcar verificado" style="width:32px;height:32px;border-radius:9px;border:1px solid rgba(22,163,74,0.3);background:rgba(22,163,74,0.08);color:#15803d;cursor:pointer;font-size:14px">✓</button>
+              <button onClick="{{ r.onFalse }}" title="Marcar falso / spam" style="width:32px;height:32px;border-radius:9px;border:1px solid rgba(220,38,38,0.3);background:rgba(220,38,38,0.08);color:#b91c1c;cursor:pointer;font-size:14px">⚑</button>
+              <button onClick="{{ r.onDelete }}" title="Eliminar" style="width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);cursor:pointer;font-size:14px">🗑</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- Mapa operativo: reutiliza el mismo mapa de Resumen -->
+      <sc-if value="{{ secMapa }}" hint-placeholder-val="{{ false }}">
+      <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm);padding:40px 18px;text-align:center;color:var(--muted);font-size:13px">El mapa operativo se muestra en la sección "Resumen" — esta vista dedicada está en construcción.</div>
+      </sc-if>
+
+      <!-- Asistente IA / Usuarios: aún no implementados -->
+      <sc-if value="{{ secOther }}" hint-placeholder-val="{{ false }}">
+      <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm);padding:40px 18px;text-align:center;color:var(--muted);font-size:13px">Esta sección todavía no está implementada.</div>
+      </sc-if>
     </main>
   </div>
   </sc-if>
@@ -543,44 +627,189 @@
 class Component extends DCLogic {
   state = {
     theme: (this.props.defaultTheme || 'light'),
-    view: 'app',
+    view: ((typeof window !== 'undefined' ? window.innerWidth : 1024) <= 900 ? 'app' : 'admin'),
     showReport: false, showDetail: false, showSent: false, searchOpen: false,
     reportStep: 0, selectedId: null, detailId: null,
     filter: 'todos', layersOpen: false, legendOpen: false,
     offline: false, queue: 0, base: 'streets', lastId: null, toast: null,
-    draft: { type: null, urgency: 'alta', desc: '', people: 1, name: '', phone: '', loc: 'gps', manual: '', media: [] },
-    reports: [
-      { id: 'CCC-2841', type: 'atrapada', lat: 10.5985, lng: -66.9305, place: 'Maiquetía, Calle Soublette', desc: 'Personas atrapadas bajo escombros en vivienda de dos pisos. Se escuchan voces pidiendo ayuda.', urgency: 'critica', status: 'sin_verificar', people: 4, mins: 7, confidence: 38, vc: { confirm: 2, attended: 0, incorrect: 0 }, name: 'Vecino', media: ['foto'] },
-      { id: 'CCC-2839', type: 'colapso', lat: 10.6092, lng: -66.8915, place: 'Macuto, Av. La Playa', desc: 'Edificio residencial de 4 pisos colapsado parcialmente. Acceso vehicular comprometido.', urgency: 'critica', status: 'en_proceso', people: 12, mins: 23, confidence: 82, vc: { confirm: 9, attended: 1, incorrect: 0 }, name: 'Bomberos La Guaira', media: ['foto', 'video'] },
-      { id: 'CCC-2836', type: 'bloqueo', lat: 10.6015, lng: -66.9910, place: 'Acceso Aeropuerto Maiquetía', desc: 'Vía principal bloqueada por deslizamiento de tierra. Tránsito desviado.', urgency: 'alta', status: 'verificado', people: 0, mins: 41, confidence: 91, vc: { confirm: 14, attended: 0, incorrect: 1 }, name: 'Protección Civil', media: [] },
-      { id: 'CCC-2834', type: 'peligro', lat: 10.6005, lng: -66.9650, place: 'Maiquetía Oeste, ladera', desc: 'Riesgo de nuevo deslave en la ladera. Zona evacuada preventivamente.', urgency: 'critica', status: 'verificado', people: 0, mins: 52, confidence: 88, vc: { confirm: 11, attended: 0, incorrect: 0 }, name: 'INAMEH', media: ['foto'] },
-      { id: 'CCC-2830', type: 'hospital', lat: 10.5962, lng: -66.9512, place: 'Hospital Periférico de Pariata', desc: 'Centro asistencial operativo recibiendo heridos. Requiere donantes de sangre O-.', urgency: 'alta', status: 'verificado', people: 0, mins: 64, confidence: 96, vc: { confirm: 22, attended: 0, incorrect: 0 }, name: 'Cruz Roja', media: [] },
-      { id: 'CCC-2828', type: 'refugio', lat: 10.6112, lng: -66.8522, place: 'Caraballeda, Escuela Bolivariana', desc: 'Refugio habilitado con capacidad para 200 personas. Disponen de camas y agua.', urgency: 'media', status: 'verificado', people: 0, mins: 78, confidence: 94, vc: { confirm: 18, attended: 0, incorrect: 0 }, name: 'Alcaldía Vargas', media: ['foto'] },
-      { id: 'CCC-2825', type: 'agua', lat: 10.5938, lng: -67.0305, place: 'Catia La Mar, Sector Las Tunas', desc: 'Comunidad sin acceso a agua potable desde el sismo. ~80 familias afectadas.', urgency: 'alta', status: 'sin_verificar', people: 0, mins: 96, confidence: 44, vc: { confirm: 3, attended: 0, incorrect: 0 }, name: 'Consejo comunal', media: [] },
-      { id: 'CCC-2820', type: 'alimentos', lat: 10.6131, lng: -66.8382, place: 'Tanaguarena, comedor comunitario', desc: 'Punto de acopio y distribución de alimentos. Aceptan donaciones de víveres no perecederos.', urgency: 'media', status: 'verificado', people: 0, mins: 112, confidence: 90, vc: { confirm: 16, attended: 0, incorrect: 0 }, name: 'Fundación Manos', media: ['foto'] },
-      { id: 'CCC-2816', type: 'medicinas', lat: 10.6118, lng: -66.8762, place: 'El Cojo, ambulatorio', desc: 'Necesitan insulina y medicamentos para hipertensión. Adultos mayores sin tratamiento.', urgency: 'alta', status: 'en_proceso', people: 0, mins: 134, confidence: 71, vc: { confirm: 7, attended: 1, incorrect: 0 }, name: 'Farmacia solidaria', media: [] },
-      { id: 'CCC-2811', type: 'electricidad', lat: 10.6101, lng: -66.9101, place: 'Punta de Mulatos', desc: 'Sector sin energía eléctrica. Postes caídos sobre la vía, riesgo de electrocución.', urgency: 'media', status: 'en_proceso', people: 0, mins: 158, confidence: 66, vc: { confirm: 6, attended: 1, incorrect: 0 }, name: 'Corpoelec reporta', media: [] },
-      { id: 'CCC-2807', type: 'internet', lat: 10.6041, lng: -66.9312, place: 'La Guaira, casco central', desc: 'Punto con conexión WiFi gratuita y carga de teléfonos para coordinación.', urgency: 'baja', status: 'verificado', people: 0, mins: 181, confidence: 87, vc: { confirm: 12, attended: 0, incorrect: 0 }, name: 'CANTV', media: [] },
-      { id: 'CCC-2802', type: 'atrapada', lat: 10.6024, lng: -66.9452, place: 'Las Tunitas, callejón 3', desc: 'Familia atrapada en planta baja por estructura inestable. Adultos mayores presentes.', urgency: 'alta', status: 'en_proceso', people: 3, mins: 205, confidence: 74, vc: { confirm: 8, attended: 1, incorrect: 0 }, name: 'Voluntario', media: ['audio'] },
-      { id: 'CCC-2798', type: 'ayuda', lat: 10.6049, lng: -66.9285, place: 'Plaza Vargas, La Guaira', desc: 'Centro de coordinación de voluntarios y entrega de insumos básicos.', urgency: 'baja', status: 'verificado', people: 0, mins: 232, confidence: 92, vc: { confirm: 19, attended: 0, incorrect: 0 }, name: 'Voluntariado CCC', media: ['foto'] },
-      { id: 'CCC-2790', type: 'bloqueo', lat: 10.6155, lng: -66.7455, place: 'Naiguatá, vía costera', desc: 'Carretera obstruida por rocas. Paso peatonal habilitado únicamente.', urgency: 'media', status: 'falso', people: 0, mins: 268, confidence: 18, vc: { confirm: 1, attended: 0, incorrect: 6 }, name: 'Anónimo', media: [] }
-    ]
+    vw: (typeof window !== 'undefined' ? window.innerWidth : 1024),
+    prevView: null,
+    adminSection: 'resumen',
+    connectedUsers: 1,
+    draft: { type: null, urgency: 'alta', desc: '', people: 1, name: '', phone: '', loc: 'gps', manual: '', reference: '', media: [], extra: {} },
+    reports: [],
+    loadingReports: true,
+    dbError: null,
+    offlineQueue: [],
   };
 
+  SUPABASE_URL = 'https://jlycptgceigolvakfgin.supabase.co';
+  SUPABASE_KEY = 'sb_publishable_jIFi43Bs6UUH6ZjBXfoVuw_16l51JtP';
+
+  _fromDb = (row) => ({
+    id: row.id, type: row.type, lat: row.lat, lng: row.lng, place: row.place,
+    desc: row.description, urgency: row.urgency, status: row.status, people: row.people,
+    confidence: row.confidence,
+    vc: { confirm: row.vc_confirm, attended: row.vc_attended, incorrect: row.vc_incorrect },
+    name: row.reporter_name, media: row.media || [], created_at: row.created_at,
+    phone: row.contact_phone || '', details: row.details || {},
+  });
+
+  async fetchReports() {
+    try {
+      const res = await fetch(this.SUPABASE_URL + '/rest/v1/reports?select=*&order=created_at.desc&limit=1000', {
+        headers: { apikey: this.SUPABASE_KEY, Authorization: 'Bearer ' + this.SUPABASE_KEY },
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const rows = await res.json();
+      this.setState({ reports: rows.map(this._fromDb), loadingReports: false, dbError: null });
+    } catch (e) {
+      this.setState({ loadingReports: false, dbError: 'No se pudo conectar con la base de datos.' });
+    }
+  }
+
+  subscribeRealtime() {
+    if (!window.supabase) return;
+    this.sb = window.supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+    this.sb.channel('reports-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
+        this.setState(s => {
+          if (payload.eventType === 'DELETE') {
+            return { reports: s.reports.filter(r => r.id !== payload.old.id) };
+          }
+          const updated = this._fromDb(payload.new);
+          const exists = s.reports.some(r => r.id === updated.id);
+          return {
+            reports: exists
+              ? s.reports.map(r => r.id === updated.id ? updated : r)
+              : [updated, ...s.reports],
+          };
+        });
+      })
+      .subscribe();
+
+    // Contador real de usuarios conectados (presencia), no un número inventado.
+    const clientId = Math.random().toString(36).slice(2);
+    this.presenceChannel = this.sb.channel('online-users', { config: { presence: { key: clientId } } });
+    this.presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = this.presenceChannel.presenceState();
+        this.setState({ connectedUsers: Object.keys(state).length });
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') this.presenceChannel.track({ online_at: new Date().toISOString() });
+      });
+  }
+
   CATS = {
-    atrapada:     { label: 'Persona atrapada',  emoji: '🆘', color: '#e5484d' },
-    colapso:      { label: 'Edificio colapsado',emoji: '🏚️', color: '#b45309' },
-    bloqueo:      { label: 'Calle bloqueada',   emoji: '🚧', color: '#e8950c' },
-    peligro:      { label: 'Zona peligrosa',    emoji: '⚠️', color: '#dc2626' },
-    ayuda:        { label: 'Centro de ayuda',   emoji: '🟢', color: '#16a34a' },
-    hospital:     { label: 'Hospital',          emoji: '🏥', color: '#2563eb' },
-    refugio:      { label: 'Refugio',           emoji: '⛺', color: '#0d9488' },
-    agua:         { label: 'Agua',              emoji: '💧', color: '#0ea5e9' },
-    alimentos:    { label: 'Alimentos',         emoji: '🍞', color: '#d97706' },
-    medicinas:    { label: 'Medicinas',         emoji: '💊', color: '#db2777' },
-    electricidad: { label: 'Electricidad',      emoji: '⚡', color: '#ca8a04' },
-    internet:     { label: 'Internet',          emoji: '📶', color: '#6366f1' }
+    persona_desaparecida:  { label: 'Persona desaparecida',     emoji: '🔴', color: '#dc2626', group: 'persona' },
+    persona_encontrada_viva: { label: 'Persona encontrada con vida', emoji: '🟢', color: '#16a34a', group: 'persona' },
+    persona_fallecida:     { label: 'Persona fallecida',        emoji: '⚫', color: '#3f3f46', group: 'persona' },
+    atrapada:     { label: 'Persona atrapada (necesita rescate)',  emoji: '🆘', color: '#e5484d', group: 'general' },
+    colapso:      { label: 'Edificio colapsado',emoji: '🏚️', color: '#b45309', group: 'general' },
+    bloqueo:      { label: 'Vía bloqueada o intransitable',   emoji: '🚧', color: '#e8950c', group: 'general' },
+    peligro:      { label: 'Zona de peligro (réplicas, derrumbes, cables)', emoji: '⚠️', color: '#dc2626', group: 'general' },
+    ayuda:        { label: 'Centro de ayuda / acopio',   emoji: '🟢', color: '#16a34a', group: 'general' },
+    hospital:     { label: 'Hospital o centro de salud operativo', emoji: '🏥', color: '#2563eb', group: 'general' },
+    hospital_insumos: { label: 'Hospital necesita insumos urgentes', emoji: '🩺', color: '#2563eb', group: 'salud' },
+    insumos_disponibles: { label: 'Insumos o medicinas para donar', emoji: '💉', color: '#db2777', group: 'salud' },
+    refugio:      { label: 'Refugio / albergue',           emoji: '⛺', color: '#0d9488', group: 'general' },
+    agua:         { label: 'Punto de agua potable',              emoji: '💧', color: '#0ea5e9', group: 'general' },
+    alimentos:    { label: 'Punto de alimentos / comedor',         emoji: '🍞', color: '#d97706', group: 'general' },
+    electricidad: { label: 'Sin electricidad / cable caído (riesgo)', emoji: '⚡', color: '#ca8a04', group: 'general' },
+    internet:     { label: 'Punto de wifi / carga de celular',  emoji: '📶', color: '#6366f1', group: 'general' },
+    mascota_perdida:   { label: 'Mascota perdida',   emoji: '🐕', color: '#b45309', group: 'mascota' },
+    mascota_encontrada:{ label: 'Mascota encontrada',emoji: '🐾', color: '#16a34a', group: 'mascota' },
   };
+
+  // Campos específicos por tipo de reporte: cada uno pide datos distintos
+  // en vez de un formulario genérico igual para todos.
+  TYPE_FIELDS = {
+    persona_desaparecida: [
+      { key: 'nombre', label: 'Nombre de la persona', placeholder: 'Nombre completo (si se conoce)' },
+      { key: 'edad', label: 'Edad aproximada', placeholder: 'Ej. 65 años' },
+      { key: 'descripcion_fisica', label: 'Descripción física / ropa', placeholder: 'Ej. Camisa azul, contextura delgada' },
+      { key: 'ultima_vez_visto', label: 'Última vez vista (fecha / zona)', placeholder: 'Ej. Hoy 8am, cerca de la plaza' },
+    ],
+    persona_encontrada_viva: [
+      { key: 'nombre', label: 'Nombre de la persona', placeholder: 'Nombre completo (si se conoce)' },
+      { key: 'estado_salud', label: 'Estado de salud', placeholder: 'Ej. Estable, con heridas leves' },
+      { key: 'trasladada_a', label: '¿Fue trasladada a algún lugar?', placeholder: 'Ej. Hospital de Pariata' },
+    ],
+    persona_fallecida: [
+      { key: 'nombre', label: 'Nombre (si se conoce)', placeholder: 'Nombre completo' },
+      { key: 'donde_encontrada', label: 'Dónde fue encontrada', placeholder: 'Ej. Bajo escombros, calle X' },
+      { key: 'autoridad_notificada', label: '¿Ya se notificó a una autoridad?', placeholder: 'Ej. Protección Civil, bomberos' },
+    ],
+    atrapada: [
+      { key: 'acceso', label: 'Cómo acceder al lugar', placeholder: 'Ej. Entrada por el callejón lateral' },
+      { key: 'se_escuchan_voces', label: '¿Se escuchan voces o señales de vida?', placeholder: 'Sí / No / No estoy seguro' },
+    ],
+    colapso: [
+      { key: 'tipo_edificio', label: 'Tipo de edificio', placeholder: 'Ej. Vivienda, comercio, escuela' },
+      { key: 'pisos', label: 'Pisos aproximados', placeholder: 'Ej. 3 pisos' },
+    ],
+    bloqueo: [
+      { key: 'causa', label: 'Causa del bloqueo', placeholder: 'Ej. Derrumbe, escombros, inundación' },
+      { key: 'transitable_a_pie', label: '¿Se puede pasar a pie?', placeholder: 'Sí / No' },
+    ],
+    peligro: [
+      { key: 'tipo_peligro', label: 'Tipo de peligro', placeholder: 'Ej. Riesgo de derrumbe, cables caídos' },
+    ],
+    ayuda: [
+      { key: 'que_ofrecen', label: 'Qué ofrecen', placeholder: 'Ej. Ropa, agua, alimentos, voluntariado' },
+      { key: 'horario', label: 'Horario de atención', placeholder: 'Ej. 8am - 5pm' },
+    ],
+    hospital: [
+      { key: 'nombre_centro', label: 'Nombre del centro', placeholder: 'Ej. Hospital de Pariata' },
+      { key: 'recibiendo_pacientes', label: '¿Está recibiendo pacientes?', placeholder: 'Sí / No' },
+      { key: 'servicios', label: 'Servicios disponibles', placeholder: 'Ej. Urgencias, quirófano' },
+    ],
+    hospital_insumos: [
+      { key: 'nombre_centro', label: 'Nombre del hospital', placeholder: 'Ej. Hospital de Pariata' },
+      { key: 'insumos', label: 'Insumos que faltan', placeholder: 'Ej. Insulina, gasas, sangre tipo O-' },
+    ],
+    insumos_disponibles: [
+      { key: 'que_hay', label: 'Qué hay disponible', placeholder: 'Ej. Medicinas, gasas, suero' },
+      { key: 'cantidad', label: 'Cantidad aproximada', placeholder: 'Ej. 10 cajas' },
+    ],
+    refugio: [
+      { key: 'nombre_lugar', label: 'Nombre del lugar', placeholder: 'Ej. Escuela Bolivariana' },
+      { key: 'capacidad', label: 'Capacidad disponible', placeholder: 'Ej. 50 personas' },
+      { key: 'que_ofrece', label: 'Qué ofrece', placeholder: 'Ej. Camas, agua, comida' },
+    ],
+    agua: [
+      { key: 'tipo_fuente', label: 'Tipo de fuente', placeholder: 'Ej. Camión cisterna, pozo, botellones' },
+      { key: 'disponible_ahora', label: '¿Disponible ahora mismo?', placeholder: 'Sí / No' },
+    ],
+    alimentos: [
+      { key: 'tipo_alimento', label: 'Tipo de alimento', placeholder: 'Ej. Víveres no perecederos, comida caliente' },
+      { key: 'para_cuantos', label: 'Para cuántas personas', placeholder: 'Ej. 100 personas' },
+    ],
+    electricidad: [
+      { key: 'tipo_falla', label: 'Tipo de situación', placeholder: 'Ej. Corte de luz, cable caído expuesto (riesgo)' },
+    ],
+    internet: [
+      { key: 'tipo_servicio', label: 'Qué ofrece', placeholder: 'Ej. WiFi gratis, carga de celular' },
+    ],
+    mascota_perdida: [
+      { key: 'tipo_animal', label: 'Tipo de animal', placeholder: 'Ej. Perro, gato' },
+      { key: 'descripcion', label: 'Descripción (raza, color, collar)', placeholder: 'Ej. Labrador color marrón, collar rojo' },
+    ],
+    mascota_encontrada: [
+      { key: 'tipo_animal', label: 'Tipo de animal', placeholder: 'Ej. Perro, gato' },
+      { key: 'descripcion', label: 'Descripción (raza, color, collar)', placeholder: 'Ej. Labrador color marrón, collar rojo' },
+      { key: 'donde_encontrada', label: 'Dónde la encontraste', placeholder: 'Ej. Cerca de la plaza' },
+    ],
+  };
+
+  // Tipos donde tiene sentido preguntar cuántas personas afectadas hay.
+  // El resto son puntos informativos (wifi, agua, insumos, mascotas...) donde no aplica.
+  PEOPLE_COUNT_TYPES = new Set([
+    'atrapada', 'colapso', 'bloqueo', 'peligro',
+    'persona_desaparecida', 'persona_encontrada_viva', 'persona_fallecida',
+  ]);
+
   STATUS = {
     sin_verificar: { label: 'Sin verificar', color: '#8b94a3' },
     verificado:    { label: 'Verificado',    color: '#16a34a' },
@@ -604,6 +833,20 @@ class Component extends DCLogic {
   componentDidMount() {
     this.applyTheme();
     this._wait(() => window.L && document.getElementById('ccc-map'), () => { this.initAppMap(); setTimeout(() => this.appMap && this.appMap.invalidateSize(), 150); });
+    this.fetchReports();
+    this._wait(() => window.supabase, () => this.subscribeRealtime());
+    this._onResize = () => {
+      const w = window.innerWidth;
+      const nowMobile = w <= 900;
+      const wasMobile = this.state.vw <= 900;
+      this.setState(s => ({ vw: w, view: (nowMobile !== wasMobile) ? (nowMobile ? 'app' : 'admin') : s.view }));
+      setTimeout(() => { if (this.appMap) this.appMap.invalidateSize(); if (this.adminMap) this.adminMap.invalidateSize(); }, 60);
+    };
+    window.addEventListener('resize', this._onResize);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._onResize);
+    if (this.sb) this.sb.removeAllChannels();
   }
   componentDidUpdate(pp, ps) {
     if (ps.theme !== this.state.theme) {
@@ -622,11 +865,15 @@ class Component extends DCLogic {
       this.renderMarkers(this.adminMap, this.adminLayer);
     }
     if (ps.view !== this.state.view) {
-      if (this.state.view === 'admin') this._wait(() => window.L, () => this.initAdminMap());
+      if (this.state.view === 'admin' && this.state.adminSection === 'resumen') this._ensureAdminMap();
       setTimeout(() => {
         if (this.appMap) this.appMap.invalidateSize();
         if (this.adminMap) this.adminMap.invalidateSize();
       }, 140);
+    }
+    if (ps.adminSection !== this.state.adminSection) {
+      if (this.state.adminSection === 'resumen') this._ensureAdminMap();
+      setTimeout(() => { if (this.adminMap) this.adminMap.invalidateSize(); }, 140);
     }
     if (this.state.showReport && this.state.reportStep === 1 && !this.miniMap) {
       this._wait(() => window.L && document.getElementById('ccc-mini'), () => this.initMini());
@@ -661,7 +908,13 @@ class Component extends DCLogic {
   }
   _match(r, f) {
     if (f === 'todos') return true;
-    const map = { atrapada: ['atrapada', 'colapso'], calles: ['bloqueo', 'peligro'], hospital: ['hospital'], refugio: ['refugio', 'ayuda'], agua: ['agua'], comida: ['alimentos'], medicinas: ['medicinas'] };
+    const map = {
+      atrapada: ['atrapada', 'colapso'], calles: ['bloqueo', 'peligro'],
+      hospital: ['hospital', 'hospital_insumos'], refugio: ['refugio', 'ayuda'],
+      agua: ['agua'], comida: ['alimentos'], medicinas: ['medicinas', 'insumos_disponibles'],
+      personas: ['persona_desaparecida', 'persona_encontrada_viva', 'persona_fallecida'],
+      mascotas: ['mascota_perdida', 'mascota_encontrada'],
+    };
     return (map[f] || [f]).includes(r.type);
   }
   initAppMap() {
@@ -670,6 +923,13 @@ class Component extends DCLogic {
     this.appTiles = L.tileLayer(this._tileUrl(), { maxZoom: 19 }).addTo(this.appMap);
     this.appLayer = (window.L.markerClusterGroup ? L.markerClusterGroup({ maxClusterRadius: 44, showCoverageOnHover: false }) : L.layerGroup()).addTo(this.appMap);
     this.renderMarkers(this.appMap, this.appLayer);
+  }
+  _ensureAdminMap() {
+    if (this.adminMap && !document.body.contains(this.adminMap.getContainer())) {
+      this.adminMap.remove();
+      this.adminMap = null; this.adminTiles = null; this.adminLayer = null;
+    }
+    this._wait(() => window.L && document.getElementById('ccc-admin-map'), () => this.initAdminMap());
   }
   initAdminMap() {
     const el = document.getElementById('ccc-admin-map'); if (!el || this.adminMap) return;
@@ -699,9 +959,12 @@ class Component extends DCLogic {
   _toast(msg) { this.setState({ toast: msg }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: null }), 2400); }
 
   // ── report flow ──
-  openReport = () => this.setState({ showReport: true, reportStep: 0, selectedId: null, draft: { type: null, urgency: 'alta', desc: '', people: 1, name: '', phone: '', loc: 'gps', manual: '', media: [] } });
-  closeReport = () => this.setState({ showReport: false });
-  reportBack = () => { if (this.state.reportStep === 0) this.setState({ showReport: false }); else this.setState(s => ({ reportStep: s.reportStep - 1 })); };
+  _freshDraft() { return { type: null, urgency: 'alta', desc: '', people: 1, name: '', phone: '', loc: 'gps', manual: '', reference: '', media: [], extra: {} }; }
+  openReport = () => this.setState({ showReport: true, reportStep: 0, selectedId: null, draft: this._freshDraft() });
+  openReportFromAdmin = () => this.setState(s => ({ view: 'app', prevView: s.view, showReport: true, reportStep: 0, selectedId: null, draft: this._freshDraft() }));
+  _restoreView() { return this.state.prevView ? { view: this.state.prevView, prevView: null } : {}; }
+  closeReport = () => this.setState(s => ({ showReport: false, ...this._restoreView() }));
+  reportBack = () => { if (this.state.reportStep === 0) this.setState(s => ({ showReport: false, ...this._restoreView() })); else this.setState(s => ({ reportStep: s.reportStep - 1 })); };
   reportNext = () => {
     const s = this.state;
     if (s.reportStep === 0 && !s.draft.type) { this._toast('Selecciona un tipo de incidente'); return; }
@@ -713,52 +976,190 @@ class Component extends DCLogic {
   setLoc = (v) => this.setState(s => ({ draft: { ...s.draft, loc: v } }));
   onDesc = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, desc: v } })); };
   onManual = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, manual: v } })); };
+  onReference = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, reference: v } })); };
+  setRef = () => this.setLoc('referencia');
   onName = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, name: v } })); };
   onPhone = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, phone: v } })); };
+  onExtra = (key, value) => this.setState(s => ({ draft: { ...s.draft, extra: { ...s.draft.extra, [key]: value } } }));
   incPeople = () => this.setState(s => ({ draft: { ...s.draft, people: Math.min(999, s.draft.people + 1) } }));
   decPeople = () => this.setState(s => ({ draft: { ...s.draft, people: Math.max(0, s.draft.people - 1) } }));
-  addMedia = (t) => this.setState(s => s.draft.media.includes(t) ? {} : ({ draft: { ...s.draft, media: [...s.draft.media, t] } }));
-  removeMedia = (t) => this.setState(s => ({ draft: { ...s.draft, media: s.draft.media.filter(x => x !== t) } }));
-  submitReport = () => {
-    const d = this.state.draft;
-    const id = 'CCC-' + (2842 + this.state.queue + this.state.reports.length - 14);
-    const r = { id, type: d.type || 'ayuda', lat: 10.606 + (Math.random() - 0.5) * 0.05, lng: -66.915 + (Math.random() - 0.5) * 0.07, place: d.loc === 'manual' && d.manual ? d.manual : 'Tu ubicación · ' + (this.props.scenarioCity || 'La Guaira'), desc: d.desc || '(Sin descripción)', urgency: d.urgency, status: 'sin_verificar', people: d.people, mins: 0, confidence: 20, vc: { confirm: 0, attended: 0, incorrect: 0 }, name: d.name || 'Tú', media: d.media };
-    if (this.state.offline) {
-      this.setState(s => ({ queue: s.queue + 1, showReport: false, showSent: true, lastId: id }));
-    } else {
-      this.setState(s => ({ reports: [r, ...s.reports], showReport: false, showSent: true, lastId: id }));
+  addMedia = (t) => this.setState(s => ({ draft: { ...s.draft, media: [...s.draft.media, { kind: t }] } }));
+  removeMedia = (item) => this.setState(s => ({ draft: { ...s.draft, media: s.draft.media.filter(x => x !== item) } }));
+  onPhotoFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (file) this.uploadPhoto(file);
+  };
+  _compressImage(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else if (height >= width && height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          blob ? resolve(blob) : reject(new Error('No se pudo comprimir la imagen'));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Imagen inválida')); };
+      img.src = url;
+    });
+  }
+  uploadPhoto = async (file) => {
+    this.setState({ uploadingPhoto: true });
+    try {
+      // Comprimimos en el navegador: una foto de celular (3-5MB) baja a ~100-300KB.
+      // El plan gratuito de Supabase Storage es limitado y esto se multiplica por cada reporte.
+      const blob = await this._compressImage(file, 1600, 0.72);
+      const path = 'reports/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.jpg';
+      const res = await fetch(this.SUPABASE_URL + '/storage/v1/object/report-media/' + path, {
+        method: 'POST',
+        headers: { apikey: this.SUPABASE_KEY, Authorization: 'Bearer ' + this.SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
+        body: blob,
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const url = this.SUPABASE_URL + '/storage/v1/object/public/report-media/' + path;
+      this.setState(s => ({ draft: { ...s.draft, media: [...s.draft.media, { kind: 'foto', url }] }, uploadingPhoto: false }));
+    } catch (e) {
+      this.setState({ uploadingPhoto: false });
+      this._toast('No se pudo subir la foto.');
     }
   };
-  sentToMap = () => this.setState({ showSent: false });
+  _placeFor(d) {
+    if (d.loc === 'manual' && d.manual) return d.manual;
+    if (d.loc === 'referencia' && d.reference) return d.reference;
+    return 'Tu ubicación GPS · ' + (this.props.scenarioCity || 'La Guaira');
+  }
+  submitReport = async () => {
+    const d = this.state.draft;
+    const payload = {
+      type: d.type || 'ayuda',
+      lat: 10.606 + (Math.random() - 0.5) * 0.05,
+      lng: -66.915 + (Math.random() - 0.5) * 0.07,
+      place: this._placeFor(d),
+      description: d.desc || '(Sin descripción)',
+      urgency: d.urgency, status: 'sin_verificar', people: d.people, confidence: 20,
+      vc_confirm: 0, vc_attended: 0, vc_incorrect: 0,
+      reporter_name: d.name || 'Tú', contact_phone: d.phone || null,
+      details: d.extra || {}, media: d.media,
+    };
+    if (this.state.offline) {
+      this.setState(s => ({ offlineQueue: [...s.offlineQueue, payload], queue: s.queue + 1, showReport: false, showSent: true, lastId: 'pendiente (offline)' }));
+      return;
+    }
+    try {
+      const res = await fetch(this.SUPABASE_URL + '/rest/v1/reports', {
+        method: 'POST',
+        headers: { apikey: this.SUPABASE_KEY, Authorization: 'Bearer ' + this.SUPABASE_KEY, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const [row] = await res.json();
+      const r = this._fromDb(row);
+      this.setState(s => ({ reports: s.reports.some(x => x.id === r.id) ? s.reports : [r, ...s.reports], showReport: false, showSent: true, lastId: r.id }));
+    } catch (e) {
+      this._toast('No se pudo enviar el reporte. Intenta de nuevo.');
+    }
+  };
+  sentToMap = () => this.setState(s => ({ showSent: false, ...this._restoreView() }));
   sentAnother = () => this.openReport();
 
   // ── detail / verify ──
   openDetail = (id) => this.setState({ showDetail: true, detailId: id, selectedId: null });
   closeDetail = () => this.setState({ showDetail: false });
-  verify = (id, kind) => {
-    this.setState(s => ({
-      reports: s.reports.map(r => {
-        if (r.id !== id) return r;
-        const vc = { ...r.vc }; vc[kind] = (vc[kind] || 0) + 1;
-        let conf = r.confidence, status = r.status;
-        if (kind === 'confirm') conf = Math.min(99, conf + 6);
-        if (kind === 'attended') { conf = Math.min(99, conf + 3); status = 'en_proceso'; }
-        if (kind === 'incorrect') conf = Math.max(2, conf - 12);
-        return { ...r, vc, confidence: conf, status };
-      })
-    }));
+  verify = async (id, kind) => {
+    const r = this._byId(id); if (!r) return;
+    const vc = { ...r.vc }; vc[kind] = (vc[kind] || 0) + 1;
+    let conf = r.confidence, status = r.status;
+    if (kind === 'confirm') conf = Math.min(99, conf + 6);
+    if (kind === 'attended') { conf = Math.min(99, conf + 3); status = 'en_proceso'; }
+    if (kind === 'incorrect') conf = Math.max(2, conf - 12);
+    this.setState(s => ({ reports: s.reports.map(x => x.id === id ? { ...x, vc, confidence: conf, status } : x) }));
     const msg = { confirm: 'Confirmación registrada · gracias', attended: 'Marcado como atendido', incorrect: 'Reporte marcado como dudoso' };
     this._toast(msg[kind]);
+    try {
+      const res = await fetch(this.SUPABASE_URL + '/rest/v1/reports?id=eq.' + id, {
+        method: 'PATCH',
+        headers: { apikey: this.SUPABASE_KEY, Authorization: 'Bearer ' + this.SUPABASE_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ vc_confirm: vc.confirm, vc_attended: vc.attended, vc_incorrect: vc.incorrect, confidence: conf, status }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    } catch (e) {
+      this._toast('No se pudo sincronizar el cambio.');
+    }
   };
-  modAction = (id, action) => {
-    if (action === 'delete') { this.setState(s => ({ reports: s.reports.filter(r => r.id !== id) })); this._toast('Reporte eliminado'); return; }
-    this.setState(s => ({ reports: s.reports.map(r => r.id === id ? { ...r, status: action === 'verify' ? 'verificado' : 'falso', confidence: action === 'verify' ? Math.max(r.confidence, 85) : 12 } : r) }));
+  _storagePath(url) {
+    const marker = '/object/public/report-media/';
+    const i = url.indexOf(marker);
+    return i === -1 ? null : url.slice(i + marker.length);
+  }
+  modAction = async (id, action) => {
+    if (action === 'delete') {
+      const r = this._byId(id);
+      this.setState(s => ({ reports: s.reports.filter(x => x.id !== id) }));
+      this._toast('Reporte eliminado');
+      try {
+        await fetch(this.SUPABASE_URL + '/rest/v1/reports?id=eq.' + id, {
+          method: 'DELETE',
+          headers: { apikey: this.SUPABASE_KEY, Authorization: 'Bearer ' + this.SUPABASE_KEY },
+        });
+        // Liberar el storage: las fotos de un reporte borrado no sirven para nada.
+        const paths = (r ? r.media : []).map(m => m.url && this._storagePath(m.url)).filter(Boolean);
+        for (const p of paths) {
+          fetch(this.SUPABASE_URL + '/storage/v1/object/report-media/' + p, {
+            method: 'DELETE',
+            headers: { apikey: this.SUPABASE_KEY, Authorization: 'Bearer ' + this.SUPABASE_KEY },
+          }).catch(() => {});
+        }
+      } catch (e) { this._toast('No se pudo sincronizar la eliminación.'); }
+      return;
+    }
+    const r = this._byId(id); if (!r) return;
+    const status = action === 'verify' ? 'verificado' : 'falso';
+    const confidence = action === 'verify' ? Math.max(r.confidence, 85) : 12;
+    this.setState(s => ({ reports: s.reports.map(x => x.id === id ? { ...x, status, confidence } : x) }));
     this._toast(action === 'verify' ? 'Marcado como verificado' : 'Marcado como falso');
+    try {
+      const res = await fetch(this.SUPABASE_URL + '/rest/v1/reports?id=eq.' + id, {
+        method: 'PATCH',
+        headers: { apikey: this.SUPABASE_KEY, Authorization: 'Bearer ' + this.SUPABASE_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ status, confidence }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    } catch (e) {
+      this._toast('No se pudo sincronizar el cambio.');
+    }
   };
 
   // ── ui toggles ──
   toggleTheme = () => this.setState(s => ({ theme: s.theme === 'light' ? 'dark' : 'light' }));
-  toggleOffline = () => { const off = !this.state.offline; this.setState({ offline: off }); this._toast(off ? 'Modo offline · los reportes se guardarán localmente' : (this.state.queue ? this.state.queue + ' reporte(s) sincronizados' : 'Conexión restablecida')); if (!off && this.state.queue) this.setState({ queue: 0 }); };
+  toggleOffline = async () => {
+    if (!this.state.offline) {
+      this.setState({ offline: true });
+      this._toast('Modo offline · los reportes se guardarán localmente');
+      return;
+    }
+    const queue = this.state.offlineQueue;
+    this.setState({ offline: false });
+    if (queue.length === 0) { this._toast('Conexión restablecida'); return; }
+    this._toast('Sincronizando ' + queue.length + ' reporte(s)…');
+    for (const payload of queue) {
+      try {
+        await fetch(this.SUPABASE_URL + '/rest/v1/reports', {
+          method: 'POST',
+          headers: { apikey: this.SUPABASE_KEY, Authorization: 'Bearer ' + this.SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch (e) { /* se reintentará en la próxima sincronización */ }
+    }
+    this.setState({ offlineQueue: [], queue: 0 });
+    this._toast(queue.length + ' reporte(s) sincronizados');
+  };
   toggleLayers = () => this.setState(s => ({ layersOpen: !s.layersOpen, legendOpen: false }));
   toggleLegend = () => this.setState(s => ({ legendOpen: !s.legendOpen, layersOpen: false }));
   setBase = (b) => this.setState({ base: b });
@@ -769,16 +1170,24 @@ class Component extends DCLogic {
   locate = () => { if (this.appMap) this.appMap.flyTo([10.606, -66.915], 14, { duration: 0.7 }); this._toast('Centrando en tu ubicación'); };
   goApp = () => this.setState({ view: 'app' });
   goAdmin = () => this.setState({ view: 'admin' });
+  setAdminSection = (id) => this.setState({ adminSection: id });
 
   _confColor(c) { return c >= 70 ? '#16a34a' : c >= 40 ? '#d97706' : '#dc2626'; }
   _soft(hex, a) { return 'color-mix(in srgb, ' + hex + ' ' + a + '%, transparent)'; }
-  _ago(m) { if (m <= 0) return 'ahora'; if (m < 60) return 'hace ' + m + ' min'; const h = Math.round(m / 60); return 'hace ' + h + ' h'; }
+  _ago(createdAt) {
+    if (!createdAt) return 'ahora';
+    const m = Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000));
+    if (m <= 0) return 'ahora';
+    if (m < 60) return 'hace ' + m + ' min';
+    const h = Math.round(m / 60);
+    return 'hace ' + h + ' h';
+  }
   _disp(r) {
     const c = this.CATS[r.type], st = this.STATUS[r.status], ur = this.URG[r.urgency];
     return { ...r, catLabel: c.label, emoji: c.emoji, color: c.color, colorSoft: this._soft(c.color, 14),
       statusLabel: st.label, statusColor: st.color, statusSoft: this._soft(st.color, 14),
       urgLabel: ur.label, urgColor: ur.color, urgSoft: this._soft(ur.color, 14),
-      confColor: this._confColor(r.confidence), time: this._ago(r.mins) };
+      confColor: this._confColor(r.confidence), time: this._ago(r.created_at) };
   }
 
   renderVals() {
@@ -790,10 +1199,12 @@ class Component extends DCLogic {
 
     // chips
     const chipDefs = [
-      { id: 'todos', label: 'Todos', emoji: '◎' }, { id: 'atrapada', label: 'Atrapados', emoji: '🆘' },
+      { id: 'todos', label: 'Todos', emoji: '◎' }, { id: 'personas', label: 'Personas', emoji: '🔴' },
+      { id: 'atrapada', label: 'Atrapados', emoji: '🆘' },
       { id: 'calles', label: 'Vías', emoji: '🚧' }, { id: 'hospital', label: 'Hospitales', emoji: '🏥' },
       { id: 'refugio', label: 'Refugios', emoji: '⛺' }, { id: 'agua', label: 'Agua', emoji: '💧' },
-      { id: 'comida', label: 'Comida', emoji: '🍞' }, { id: 'medicinas', label: 'Medicinas', emoji: '💊' }
+      { id: 'comida', label: 'Comida', emoji: '🍞' }, { id: 'medicinas', label: 'Medicinas', emoji: '💊' },
+      { id: 'mascotas', label: 'Mascotas', emoji: '🐾' }
     ];
     const chips = chipDefs.map(c => {
       const active = s.filter === c.id;
@@ -825,7 +1236,11 @@ class Component extends DCLogic {
 
     // media chips
     const mediaLabels = { foto: '📷 Foto', video: '🎥 Video', audio: '🎙️ Audio' };
-    const mediaChips = s.draft.media.map(m => ({ label: mediaLabels[m], onRemove: () => this.removeMedia(m) }));
+    const mediaChips = s.draft.media.map(m => ({ label: mediaLabels[m.kind], onRemove: () => this.removeMedia(m) }));
+    const extraFields = (this.TYPE_FIELDS[s.draft.type] || []).map(f => ({
+      key: f.key, label: f.label, placeholder: f.placeholder,
+      value: s.draft.extra[f.key] || '', onInput: (e) => this.onExtra(f.key, e.target.value),
+    }));
 
     // selected / detail
     const selR = s.selectedId ? this._byId(s.selectedId) : null;
@@ -888,7 +1303,14 @@ class Component extends DCLogic {
     const maxStatus = Math.max(1, ...Object.values(byStatus));
     const statusBars = Object.entries(this.STATUS).map(([id, st]) => ({ label: st.label, color: st.color, count: byStatus[id], width: (byStatus[id] / maxStatus * 100) + '%' }));
 
-    const recent = [...s.reports].sort((a, b) => a.mins - b.mins).slice(0, 6).map(r => ({ ...this._disp(r), onVerify: () => this.modAction(r.id, 'verify'), onFalse: () => this.modAction(r.id, 'false'), onDelete: () => this.modAction(r.id, 'delete') }));
+    const sortedReports = [...s.reports].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const _rowify = (r) => ({ ...this._disp(r), onVerify: () => this.modAction(r.id, 'verify'), onFalse: () => this.modAction(r.id, 'false'), onDelete: () => this.modAction(r.id, 'delete') });
+    const recent = sortedReports.slice(0, 6).map(_rowify);
+    const allReportsRows = sortedReports.map(_rowify);
+    const pendingRows = sortedReports.filter(r => r.status === 'sin_verificar').map(_rowify);
+    const secResumen = s.adminSection === 'resumen', secReportes = s.adminSection === 'reportes',
+      secModeracion = s.adminSection === 'moderacion', secMapa = s.adminSection === 'mapa',
+      secOther = s.adminSection === 'ia' || s.adminSection === 'usuarios';
 
     const aiItems = [
       { icon: '🔀', iconBg: 'rgba(99,102,241,0.14)', iconFg: '#6366f1', title: '3 reportes duplicados agrupados', body: 'Incidentes de "colapso" en Macuto fusionados en un solo caso para evitar redundancia.' },
@@ -903,18 +1325,42 @@ class Component extends DCLogic {
       { id: 'moderacion', icon: '🛡️', label: 'Moderación' }, { id: 'ia', icon: '✦', label: 'Asistente IA' },
       { id: 'usuarios', icon: '👥', label: 'Usuarios' }
     ];
-    const navItems = navDefs.map((n, i) => ({ ...n, onTap: () => {}, bg: i === 0 ? 'var(--accent-soft)' : 'transparent', fg: i === 0 ? acc : 'var(--fg-2)', hasBadge: !!n.badge }));
+    const navItems = navDefs.map(n => {
+      const active = s.adminSection === n.id;
+      return { ...n, onTap: () => this.setAdminSection(n.id), bg: active ? 'var(--accent-soft)' : 'transparent', fg: active ? acc : 'var(--fg-2)', hasBadge: !!n.badge };
+    });
+
+    const isNarrow = s.vw <= 560;
+    const isMid = !isNarrow && s.vw <= 900;
 
     return {
       cityLabel: city, isDark: dark, isApp: s.view === 'app', isAdmin: s.view === 'admin',
       themeIcon: dark ? '☀️' : '🌙',
+      devicePad: isNarrow ? '0px' : (isMid ? '20px 16px 40px' : '34px 16px 60px'),
+      deviceShadow: isNarrow ? 'none' : 'drop-shadow(0 30px 60px rgba(16,20,30,0.22))',
+      deviceWidth: isNarrow ? s.vw : (isMid ? 360 : 402),
+      deviceHeight: isNarrow ? (typeof window !== 'undefined' ? window.innerHeight - 66 : 760) : (isMid ? 782 : 874),
+      deviceRadius: isNarrow ? 0 : 48,
+      isNarrow,
+      adminOuterDir: isNarrow ? 'column' : 'row',
+      adminAsideClass: isNarrow ? 'hs' : '',
+      adminAsideStyle: isNarrow
+        ? 'width:100%;flex-shrink:0;border-bottom:1px solid var(--border);padding:10px 12px;display:flex;flex-direction:row;gap:6px;overflow-x:auto;background:var(--surface)'
+        : 'width:236px;flex-shrink:0;border-right:1px solid var(--border);padding:22px 16px;display:flex;flex-direction:column;gap:6px;background:var(--surface)',
+      navLabelDisplay: isNarrow ? 'display:none' : '',
+      adminMainMaxH: isNarrow ? 'none' : 'calc(100vh - 66px)',
+      adminMainPad: isNarrow ? '18px 16px 50px' : '24px 28px 60px',
+      topSubtitleDisplay: isNarrow ? 'display:none;' : '',
+      showLoadingBanner: s.loadingReports, dbError: s.dbError,
+      showDbErrorBanner: !s.loadingReports && !!s.dbError,
+      showEmptyBanner: !s.loadingReports && !s.dbError && s.reports.length === 0,
       appTabBg: at.bg, appTabFg: at.fg, appTabShadow: at.shadow,
       adminTabBg: ad.bg, adminTabFg: ad.fg, adminTabShadow: ad.shadow,
       goApp: this.goApp, goAdmin: this.goAdmin, toggleTheme: this.toggleTheme,
 
       // map controls
       openSearch: this.openSearch, toggleLayers: this.toggleLayers, toggleLegend: this.toggleLegend,
-      locate: this.locate, openReport: this.openReport, toggleOffline: this.toggleOffline,
+      locate: this.locate, openReport: this.openReport, openReportFromAdmin: this.openReportFromAdmin, toggleOffline: this.toggleOffline,
       chips, legendItems, layerToggles, layersOpen: s.layersOpen, legendOpen: s.legendOpen,
       connColor: s.offline ? '#d97706' : '#16a34a', connHalo: s.offline ? 'rgba(217,119,6,0.18)' : 'rgba(22,163,74,0.18)',
       connLabel: s.offline ? ('OFFLINE · ' + s.queue + ' en cola') : 'EN LÍNEA',
@@ -931,12 +1377,15 @@ class Component extends DCLogic {
       stepNum: s.reportStep + 1, stepTitle: this.STEPS[s.reportStep],
       stepDots: this.STEPS.map((_, i) => ({ bg: i <= s.reportStep ? acc : 'var(--surface-3)' })),
       rs0: s.reportStep === 0, rs1: s.reportStep === 1, rs2: s.reportStep === 2, rs3: s.reportStep === 3, rs4: s.reportStep === 4,
-      typeGrid, urgGrid, draft: s.draft,
-      draftManual: s.draft.loc === 'manual',
+      typeGrid, urgGrid, draft: s.draft, extraFields,
+      showPeopleCount: this.PEOPLE_COUNT_TYPES.has(s.draft.type),
+      onPhotoFile: this.onPhotoFile, uploadingPhoto: !!s.uploadingPhoto,
+      draftManual: s.draft.loc === 'manual', draftRef: s.draft.loc === 'referencia',
       gpsCoords: '10.6062, -66.9151',
-      setGps: () => this.setLoc('gps'), setManual: () => this.setLoc('manual'),
+      setGps: () => this.setLoc('gps'), setManual: () => this.setLoc('manual'), setRef: this.setRef, onReference: this.onReference,
       gpsBg: s.draft.loc === 'gps' ? 'var(--accent-soft)' : 'var(--surface-2)', gpsBorder: s.draft.loc === 'gps' ? acc : 'var(--border)', gpsRing: s.draft.loc === 'gps' ? acc : 'var(--border)', gpsCheck: s.draft.loc === 'gps' ? '●' : '',
       manBg: s.draft.loc === 'manual' ? 'var(--accent-soft)' : 'var(--surface-2)', manBorder: s.draft.loc === 'manual' ? acc : 'var(--border)', manRing: s.draft.loc === 'manual' ? acc : 'var(--border)', manCheck: s.draft.loc === 'manual' ? '●' : '',
+      refBg: s.draft.loc === 'referencia' ? 'var(--accent-soft)' : 'var(--surface-2)', refBorder: s.draft.loc === 'referencia' ? acc : 'var(--border)', refRing: s.draft.loc === 'referencia' ? acc : 'var(--border)', refCheck: s.draft.loc === 'referencia' ? '●' : '',
       onManual: this.onManual, onDesc: this.onDesc, onName: this.onName, onPhone: this.onPhone,
       incPeople: this.incPeople, decPeople: this.decPeople,
       addPhoto: () => this.addMedia('foto'), addVideo: () => this.addMedia('video'), addAudio: () => this.addMedia('audio'),
@@ -944,8 +1393,9 @@ class Component extends DCLogic {
       aiClass: aiClassMap, aiPrio: aiPrioMap[s.draft.urgency], aiPrioColor: du.color,
       aiSummary: (s.draft.desc ? (s.draft.desc.slice(0, 90) + (s.draft.desc.length > 90 ? '…' : '')) : 'Reporte ciudadano sin descripción detallada.'),
       revEmoji: dc ? dc.emoji : '📍', revLabel: dc ? dc.label : 'Incidente', revColorSoft: dc ? this._soft(dc.color, 14) : 'var(--surface-3)',
-      revUrg: du.label, revPeople: s.draft.people, revDesc: s.draft.desc || '(Sin descripción)',
-      revPlace: s.draft.loc === 'manual' && s.draft.manual ? s.draft.manual : 'Tu ubicación GPS · ' + city,
+      revUrg: du.label, revDesc: s.draft.desc || '(Sin descripción)',
+      revSubtitle: this.PEOPLE_COUNT_TYPES.has(s.draft.type) ? (du.label + ' · ' + s.draft.people + ' persona(s)') : du.label,
+      revPlace: this._placeFor(s.draft),
       nextLabel: s.reportStep < 4 ? 'Continuar' : (s.offline ? 'Guardar offline' : 'Enviar reporte'),
       nextBg: acc, nextFg: '#fff', nextShadow: '0 6px 16px var(--accent-soft)', nextOpacity: 1,
 
@@ -960,8 +1410,11 @@ class Component extends DCLogic {
       showDetail: s.showDetail, det, closeDetail: this.closeDetail,
 
       // admin
-      connectedUsers: 247, totalReports: total, statCards,
+      connectedUsers: s.connectedUsers, totalReports: total, statCards,
       donutGradient, donutLegend, statusBars, recent, aiItems, navItems,
+      secResumen, secReportes, secModeracion, secMapa, secOther,
+      allReportsRows, hasAllReports: allReportsRows.length > 0,
+      pendingRows, hasPendingRows: pendingRows.length > 0,
 
       // toast
       hasToast: !!s.toast, toast: s.toast
