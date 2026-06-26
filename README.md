@@ -1,24 +1,34 @@
 # Centro de Coordinación Ciudadana
 
-App de respuesta a emergencias para La Guaira: mapa interactivo, reporte de incidentes y panel de administración.
+App de respuesta a emergencias para La Guaira, Venezuela: mapa interactivo de reportes (personas, rescates, salud, refugios, mascotas, etc.) y panel de administración para verificación/moderación.
 
-## Origen del proyecto
+## Stack
 
-Este diseño se creó con **Claude Designs** (app de escritorio Claude). El formato no es HTML/React estándar:
+- **Next.js 16** (App Router) + TypeScript + Tailwind CSS
+- **Supabase**: Postgres (tabla `reports`), Storage (fotos comprimidas en el navegador antes de subir) y Realtime (sincronización en vivo + contador de usuarios conectados)
+- **Leaflet** / **react-leaflet** para el mapa
 
-- `Centro de Coordinacion.dc.html` — plantilla del diseño, usa una sintaxis propia (`<x-dc>`, `<sc-if>`, `<x-import>`, `{{ expresiones }}`).
-- `support.js` — runtime (`dc-runtime`) generado por Claude que interpreta esa plantilla sobre React/ReactDOM. **No editar a mano** (ver el comentario en la cabecera del archivo).
-- `ios-frame.jsx` — componente del marco de iPhone usado en la vista previa de app móvil.
-- `thumbnail.webp` — miniatura de vista previa.
+## Cómo correr el proyecto
 
-## Plan de trabajo (definido en el diseño original)
+```bash
+npm install
+cp .env.example .env.local   # completa con las credenciales de Supabase (pídeselas a Elsimar)
+npm run dev
+```
 
-1. Mapa interactivo (Leaflet/OSM, La Guaira, pines + filtros + capas + leyenda)
-2. Flujo de reportar incidente (multi-paso + media + IA)
-3. Pantalla de detalle (estados, verificación comunitaria, confianza)
-4. Administrador del panel (dashboard, estadísticas, mapa, moderación, IA)
-5. Tema claro/oscuro + offline + pulido + verificación
+Abre [http://localhost:3000](http://localhost:3000).
 
-## Cómo seguir trabajando
+## Estructura
 
-Por ahora el archivo principal sigue dependiendo del runtime propietario de Claude Designs. Próximo paso recomendado: decidir si se sigue editando en este formato (re-importable a Claude Designs) o se migra a un stack estándar (React + Vite) para facilitar colaboración fuera de Claude.
+- `src/app/page.tsx` — vista ciudadana (mapa + reportar)
+- `src/app/admin/page.tsx` — panel de administración (Resumen / Reportes / Moderación)
+- `src/components/` — `ReportMap`, `ReportForm` (formulario multi-paso), `ReportRow`
+- `src/hooks/` — `useReports` (fetch + realtime + CRUD), `usePresence` (conectados en vivo)
+- `src/lib/types.ts` — categorías de reportes, campos específicos por tipo, lookups de estado/urgencia
+- `src/lib/supabase.ts`, `src/lib/reports.ts` — cliente y funciones de datos
+- `supabase/*.sql` — migraciones ya ejecutadas en el proyecto de Supabase compartido (quedan aquí como referencia/historial)
+- `legacy/` — la versión anterior del proyecto, hecha como artifact de Claude Designs (`.dc.html`). Se conserva solo de referencia, ya no se mantiene.
+
+## Variables de entorno
+
+Ver `.env.example`. Ambas variables son públicas por diseño (claves `anon`/`publishable` de Supabase, protegidas con Row Level Security, no son secretas).
