@@ -50,6 +50,50 @@ export type Report = {
   created_at: string;
 };
 
+// ── Actualizaciones en vivo por reporte ──
+export type UpdateKind =
+  | "confirmacion"
+  | "en_camino"
+  | "trabajando"
+  | "localizada"
+  | "resuelto"
+  | "info";
+
+export type UpdateKindConfig = {
+  label: string;
+  emoji: string;
+  color: string;
+  hint: string;
+  // Si se define, publicar esta actualización mueve el reporte a ese estado.
+  setStatus?: ReportStatus;
+};
+
+export const UPDATE_KINDS: Record<UpdateKind, UpdateKindConfig> = {
+  confirmacion: { label: "Lo confirmo", emoji: "✓", color: "#16a34a", hint: "Vi esto, es real" },
+  en_camino: { label: "Voy en camino", emoji: "🚗", color: "#2563eb", hint: "Me dirijo al lugar" },
+  trabajando: { label: "Ya se está atendiendo", emoji: "🛠️", color: "#2563eb", hint: "Hay gente trabajando aquí", setStatus: "en_proceso" },
+  localizada: { label: "Persona / mascota localizada", emoji: "🟢", color: "#16a34a", hint: "Apareció · deja datos de contacto", setStatus: "resuelto" },
+  resuelto: { label: "Resuelto / ya no se necesita", emoji: "✅", color: "#0d9488", hint: "Situación resuelta", setStatus: "resuelto" },
+  info: { label: "Información adicional", emoji: "💬", color: "#6b7280", hint: "Aporto un dato o detalle" },
+};
+
+export type ReportUpdate = {
+  id: string;
+  report_id: string;
+  kind: UpdateKind;
+  message: string;
+  author_name: string;
+  author_phone: string | null;
+  created_at: string;
+};
+
+export type NewUpdate = {
+  kind: UpdateKind;
+  message: string;
+  author_name: string;
+  author_phone: string;
+};
+
 export type CatConfig = { label: string; emoji: string; color: string };
 
 export const CATS: Record<ReportType, CatConfig> = {
@@ -250,6 +294,8 @@ export type Draft = {
   loc: "gps" | "manual" | "referencia";
   manual: string;
   reference: string;
+  manualCoords: { lat: number; lng: number } | null;
+  referenceArea: { lat: number; lng: number; radius: number } | null;
   media: MediaItem[];
   extra: Record<string, string>;
 };
@@ -263,6 +309,8 @@ export function freshDraft(): Draft {
     name: "",
     phone: "",
     loc: "gps",
+    manualCoords: null,
+    referenceArea: null,
     manual: "",
     reference: "",
     media: [],

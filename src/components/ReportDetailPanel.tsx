@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { CATS, PEOPLE_COUNT_TYPES, Report, SHOW_URGENCY_TYPES, STATUS, TYPE_FIELDS, URG } from "@/lib/types";
+import { telLink, waLink } from "@/lib/contact";
+import { ReportUpdates } from "@/components/ReportUpdates";
 
 function timeAgo(createdAt: string) {
   const m = Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000));
@@ -30,6 +33,9 @@ export function ReportDetailPanel({
   const fields = TYPE_FIELDS[report.type] || [];
   const showPeople = PEOPLE_COUNT_TYPES.has(report.type);
   const showUrgency = SHOW_URGENCY_TYPES.has(report.type);
+  const radius = Number(report.details?._approx_radius_m);
+  const reporterWa = report.contact_phone ? waLink(report.contact_phone) : null;
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end" aria-modal>
@@ -58,7 +64,7 @@ export function ReportDetailPanel({
               <div className="text-xs" style={{ color: "var(--muted)" }}>{timeAgo(report.created_at)}</div>
             </div>
           </div>
-          <button onClick={onClose} className="text-xl" aria-label="Cerrar">×</button>
+          <button type="button" onClick={onClose} className="text-xl" aria-label="Cerrar">×</button>
         </div>
 
         <div className="flex flex-col gap-4 p-5">
@@ -92,15 +98,37 @@ export function ReportDetailPanel({
           )}
 
           <Section title="Ubicación">
-            <p className="text-sm" style={{ color: "var(--fg-2)" }}>📍 {report.place}</p>
+            <p className="text-sm" style={{ color: "var(--fg-2)" }}>
+              📍 {report.place}
+              {radius > 0 ? ` · zona aprox. ${radius} m` : ""}
+            </p>
           </Section>
 
           {(report.reporter_name || report.contact_phone) && (
             <Section title="Reportado por">
-              <p className="text-sm" style={{ color: "var(--fg-2)" }}>
-                {report.reporter_name || "Anónimo"}
-                {report.contact_phone ? ` · ${report.contact_phone}` : ""}
-              </p>
+              <p className="text-sm" style={{ color: "var(--fg-2)" }}>{report.reporter_name || "Anónimo"}</p>
+              {report.contact_phone && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {reporterWa && (
+                    <a
+                      href={reporterWa}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold text-white"
+                      style={{ background: "#16a34a" }}
+                    >
+                      🟢 WhatsApp
+                    </a>
+                  )}
+                  <a
+                    href={telLink(report.contact_phone)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
+                    style={{ borderColor: "var(--border)", color: "var(--fg)" }}
+                  >
+                    📞 Llamar
+                  </a>
+                </div>
+              )}
             </Section>
           )}
 
@@ -109,8 +137,16 @@ export function ReportDetailPanel({
               <div className="flex flex-wrap gap-2">
                 {report.media.map((m, i) =>
                   m.url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={i} src={m.url} alt="Foto del reporte" className="h-28 w-28 rounded-xl object-cover" />
+                    <button
+                      type="button"
+                      key={m.url ?? i}
+                      onClick={() => m.url && setLightbox(m.url)}
+                      aria-label="Ampliar foto del reporte"
+                      className="h-28 w-28 overflow-hidden rounded-xl"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={m.url} alt="Foto del reporte" className="h-full w-full object-cover" />
+                    </button>
                   ) : null
                 )}
               </div>
@@ -124,7 +160,31 @@ export function ReportDetailPanel({
               <span>⚑ {report.vc_incorrect} incorrecto</span>
             </div>
           </Section>
+
+          <ReportUpdates reportId={report.id} />
         </div>
+
+        {lightbox && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setLightbox(null)}
+          >
+            <button type="button"
+              onClick={() => setLightbox(null)}
+              aria-label="Cerrar"
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl text-white"
+            >
+              ×
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightbox}
+              alt="Foto del reporte ampliada"
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-full max-w-full rounded-xl object-contain"
+            />
+          </div>
+        )}
 
         {(onVerify || onAttended || onFalse || onViewMap) && (
           <div
@@ -143,7 +203,7 @@ export function ReportDetailPanel({
               )}
             </div>
             {onViewMap && (
-              <button
+              <button type="button"
                 onClick={onViewMap}
                 className="h-11 rounded-xl border text-sm font-bold"
                 style={{ borderColor: "var(--border)" }}
@@ -196,7 +256,7 @@ function ActionButton({
       ? { borderColor: "rgba(220,38,38,.3)", background: "rgba(220,38,38,.08)", color: "#b91c1c" }
       : { background: "var(--accent)", color: "#fff", borderColor: "var(--accent)" };
   return (
-    <button onClick={onClick} className="h-11 flex-1 rounded-xl border text-sm font-bold" style={styles}>
+    <button type="button" onClick={onClick} className="h-11 flex-1 rounded-xl border text-sm font-bold" style={styles}>
       {children}
     </button>
   );

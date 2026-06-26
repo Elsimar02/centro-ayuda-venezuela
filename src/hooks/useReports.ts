@@ -96,7 +96,7 @@ export function useReports() {
 
   const sortedReports = useMemo(
     () =>
-      [...reports].sort((a, b) => {
+      reports.toSorted((a, b) => {
         const diff = REPORT_PRIORITY[a.type] - REPORT_PRIORITY[b.type];
         if (diff !== 0) return diff;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();

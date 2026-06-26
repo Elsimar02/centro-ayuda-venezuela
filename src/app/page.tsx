@@ -71,7 +71,7 @@ export default function Home() {
           >
             🖥 <span className="hidden sm:inline">Panel</span>
           </Link>
-          <button
+          <button type="button"
             onClick={toggleTheme}
             className="flex h-9 w-9 items-center justify-center rounded-lg border"
             style={{ borderColor: "var(--border)" }}
@@ -95,7 +95,7 @@ export default function Home() {
         </div>
 
         <div className="absolute left-3 right-3 top-3 z-20 flex gap-2">
-          <button
+          <button type="button"
             onClick={toggleOffline}
             className="flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
             style={{
@@ -111,7 +111,7 @@ export default function Home() {
 
         <div className="absolute left-0 right-0 top-14 z-20 flex gap-2 overflow-x-auto px-3 pb-1">
           {FILTERS.map((f) => (
-            <button
+            <button type="button"
               key={f.id}
               onClick={() => setFilter(f.id)}
               className="flex h-8.5 flex-shrink-0 items-center gap-1.5 rounded-xl border px-3.5 text-xs font-bold"
@@ -133,7 +133,7 @@ export default function Home() {
           <StatusBanner text="Sin reportes todavía · sé el primero en reportar" />
         )}
 
-        <button
+        <button type="button"
           onClick={() => setShowReport(true)}
           className="absolute bottom-6 right-5 z-20 flex h-14 items-center gap-2 rounded-full px-5 font-extrabold text-white shadow-lg"
           style={{ background: "var(--accent)" }}

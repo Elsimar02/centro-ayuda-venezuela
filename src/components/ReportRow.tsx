@@ -29,6 +29,18 @@ export function ReportRow({
   return (
     <div
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className="flex items-center gap-3 px-4 py-3"
       style={{ borderBottom: "1px solid var(--border-2)", cursor: onClick ? "pointer" : "default" }}
     >
@@ -53,17 +65,17 @@ export function ReportRow({
       {showActions && (
         <div className="flex flex-shrink-0 gap-1.5" onClick={(e) => e.stopPropagation()}>
           {onVerify && (
-            <button onClick={onVerify} title="Marcar verificado" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "rgba(22,163,74,.3)", background: "rgba(22,163,74,.08)", color: "#15803d" }}>
+            <button type="button" onClick={onVerify} title="Marcar verificado" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "rgba(22,163,74,.3)", background: "rgba(22,163,74,.08)", color: "#15803d" }}>
               ✓
             </button>
           )}
           {onFalse && (
-            <button onClick={onFalse} title="Marcar falso / spam" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "rgba(220,38,38,.3)", background: "rgba(220,38,38,.08)", color: "#b91c1c" }}>
+            <button type="button" onClick={onFalse} title="Marcar falso / spam" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "rgba(220,38,38,.3)", background: "rgba(220,38,38,.08)", color: "#b91c1c" }}>
               ⚑
             </button>
           )}
           {onDelete && (
-            <button onClick={onDelete} title="Eliminar" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--muted)" }}>
+            <button type="button" onClick={onDelete} title="Eliminar" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--muted)" }}>
               🗑
             </button>
           )}

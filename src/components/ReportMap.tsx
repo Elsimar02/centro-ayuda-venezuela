@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
+import { Fragment, useEffect, useMemo } from "react";
+import { Circle, MapContainer, TileLayer, Marker, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import L from "leaflet";
 import { CATS, Report } from "@/lib/types";
 
@@ -32,6 +32,27 @@ function FlyTo({ target }: { target: [number, number] | null }) {
   return null;
 }
 
+function LocateButton() {
+  const map = useMap();
+  return (
+    <button
+      type="button"
+      title="Ir a mi ubicación"
+      aria-label="Ir a mi ubicación"
+      onClick={() => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition((pos) => {
+          map.flyTo([pos.coords.latitude, pos.coords.longitude], 15, { duration: 0.6 });
+        });
+      }}
+      className="absolute bottom-[92px] left-2.5 z-[400] flex h-10 w-10 items-center justify-center rounded-full border text-base shadow-md"
+      style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--fg)" }}
+    >
+      🎯
+    </button>
+  );
+}
+
 export default function ReportMap({
   reports,
   theme,
@@ -57,23 +78,32 @@ export default function ReportMap({
       zoom={zoom}
       zoomControl={false}
       attributionControl={false}
+      scrollWheelZoom
       style={{ height: "100%", width: "100%", background: "var(--surface-2)" }}
     >
       <TileLayer url={url} maxZoom={19} />
+      <ZoomControl position="bottomleft" />
+      <LocateButton />
       <FlyTo target={flyTarget} />
       {reports.map((r) => {
         const c = CATS[r.type];
+        const radius = Number(r.details?._approx_radius_m);
         return (
-          <Marker
-            key={r.id}
-            position={[r.lat, r.lng]}
-            icon={icon(r)}
-            eventHandlers={{ click: () => onSelect(r) }}
-          >
-            <Tooltip className="ccc-tooltip" direction="top" offset={[0, -38]} sticky>
-              {c.emoji} {c.label}
-            </Tooltip>
-          </Marker>
+          <Fragment key={r.id}>
+            {radius > 0 && (
+              <Circle
+                center={[r.lat, r.lng]}
+                radius={radius}
+                pathOptions={{ color: c.color, fillColor: c.color, fillOpacity: 0.12, weight: 1.5 }}
+              />
+            )}
+            <Marker position={[r.lat, r.lng]} icon={icon(r)} eventHandlers={{ click: () => onSelect(r) }}>
+              <Tooltip className="ccc-tooltip" direction="top" offset={[0, -38]} sticky>
+                {c.emoji} {c.label}
+                {radius > 0 ? ` · zona aprox. ${radius} m` : ""}
+              </Tooltip>
+            </Marker>
+          </Fragment>
         );
       })}
     </MapContainer>

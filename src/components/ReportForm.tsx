@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useId, useState } from "react";
 import {
   CATS,
   Draft,
@@ -30,6 +31,9 @@ const HELP_PRIORITY = Math.min(...HELP_TYPES.map((t) => REPORT_PRIORITY[t]));
 
 type TypeCard = { key: string; emoji: string; label: string; priority: number; onPick: () => void; isActive: (t: ReportType | null) => boolean };
 import { uploadPhoto } from "@/lib/reports";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+
+const RadiusPicker = dynamic(() => import("@/components/RadiusPicker"), { ssr: false });
 
 const STEPS = ["¿Qué ocurre?", "Ubicación", "Detalles", "Urgencia", "Revisar y enviar"];
 
@@ -43,7 +47,7 @@ export function ReportForm({
   onClose: () => void;
 }) {
   const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState<Draft>(freshDraft());
+  const [draft, setDraft] = useState<Draft>(() => freshDraft());
   const [uploading, setUploading] = useState(false);
   const [sentId, setSentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +99,7 @@ export function ReportForm({
           <p className="text-sm" style={{ color: "var(--muted)" }}>
             Folio {sentId}. Gracias por colaborar.
           </p>
-          <button
+          <button type="button"
             onClick={onClose}
             className="mt-3 h-11 rounded-xl px-5 font-bold text-white"
             style={{ background: "var(--accent)" }}
@@ -110,9 +114,9 @@ export function ReportForm({
   return (
     <Modal>
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-        <button onClick={back} className="text-xl" aria-label="Atrás">‹</button>
+        <button type="button" onClick={back} className="text-xl" aria-label="Atrás">‹</button>
         <h2 className="font-extrabold">Nuevo reporte</h2>
-        <button onClick={onClose} className="text-xl" aria-label="Cerrar">×</button>
+        <button type="button" onClick={onClose} className="text-xl" aria-label="Cerrar">×</button>
       </div>
       <div className="px-5 pt-3">
         <div className="flex gap-1.5">
@@ -176,7 +180,7 @@ export function ReportForm({
               ].sort((a, b) => a.priority - b.priority);
 
               return cards.map((card) => (
-                <button
+                <button type="button"
                   key={card.key}
                   onClick={card.onPick}
                   className="flex min-h-[92px] w-full flex-col items-center gap-2 rounded-2xl border p-4 text-center"
@@ -208,7 +212,7 @@ export function ReportForm({
                 </label>
                 <div className="flex flex-col gap-2">
                   {PERSON_STATUS_OPTIONS.map((opt) => (
-                    <button
+                    <button type="button"
                       key={opt.type}
                       onClick={() => setDraft((d) => ({ ...d, type: opt.type }))}
                       className="flex items-center gap-3 rounded-2xl border p-3.5 text-left"
@@ -232,7 +236,7 @@ export function ReportForm({
                 </label>
                 <div className="flex flex-col gap-2">
                   {PET_STATUS_OPTIONS.map((opt) => (
-                    <button
+                    <button type="button"
                       key={opt.type}
                       onClick={() => setDraft((d) => ({ ...d, type: opt.type }))}
                       className="flex items-center gap-3 rounded-2xl border p-3.5 text-left"
@@ -259,7 +263,7 @@ export function ReportForm({
                     const selected = (draft.extra.servicios || "").split(",").filter(Boolean);
                     const checked = selected.includes(opt.key);
                     return (
-                      <button
+                      <button type="button"
                         key={opt.key}
                         onClick={() =>
                           setDraft((d) => {
@@ -294,11 +298,12 @@ export function ReportForm({
             ))}
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+              <div className="mb-1.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
                 Describe la situación
-              </label>
+              </div>
               <textarea
                 value={draft.desc}
+                aria-label="Describe la situación"
                 onChange={(e) => setDraft((d) => ({ ...d, desc: e.target.value }))}
                 placeholder="Ej. Hay personas atrapadas bajo escombros en una vivienda de 2 pisos."
                 className="h-28 w-full resize-none rounded-2xl border p-3 text-sm outline-none"
@@ -312,7 +317,7 @@ export function ReportForm({
                   Personas afectadas (aprox.)
                 </label>
                 <div className="flex items-center gap-3">
-                  <button
+                  <button type="button"
                     onClick={() => setDraft((d) => ({ ...d, people: Math.max(0, d.people - 1) }))}
                     className="h-11 w-11 rounded-xl border text-lg"
                     style={{ borderColor: "var(--border)" }}
@@ -320,7 +325,7 @@ export function ReportForm({
                     −
                   </button>
                   <div className="flex-1 text-center text-2xl font-extrabold">{draft.people}</div>
-                  <button
+                  <button type="button"
                     onClick={() => setDraft((d) => ({ ...d, people: Math.min(999, d.people + 1) }))}
                     className="h-11 w-11 rounded-xl border text-lg"
                     style={{ borderColor: "var(--border)" }}
@@ -375,7 +380,7 @@ export function ReportForm({
                 </label>
                 <div className="flex flex-col gap-2">
                   {(Object.entries(URG) as [Urgency, typeof URG[Urgency]][]).map(([id, u]) => (
-                    <button
+                    <button type="button"
                       key={id}
                       onClick={() => setDraft((d) => ({ ...d, urgency: id }))}
                       className="flex items-center gap-3 rounded-2xl border p-3.5 text-left"
@@ -429,7 +434,7 @@ export function ReportForm({
       </div>
 
       <div className="flex gap-3 px-5 py-4" style={{ borderTop: "1px solid var(--border)" }}>
-        <button
+        <button type="button"
           onClick={next}
           disabled={step === 0 && !draft.type}
           className="h-12 flex-1 rounded-2xl font-extrabold text-white disabled:opacity-40"
@@ -452,7 +457,7 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
     <div className="flex flex-col gap-2.5">
       {options.map((o) => (
         <div key={o.id}>
-          <button
+          <button type="button"
             onClick={() => setDraft((d) => ({ ...d, loc: o.id }))}
             className="flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left"
             style={{
@@ -467,22 +472,30 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
             </span>
           </button>
           {o.id === "manual" && draft.loc === "manual" && (
-            <input
+            <AddressAutocomplete
               value={draft.manual}
-              onChange={(e) => setDraft((d) => ({ ...d, manual: e.target.value }))}
+              onChange={(v) => setDraft((d) => ({ ...d, manual: v, manualCoords: null }))}
+              onPick={(s) => setDraft((d) => ({ ...d, manual: s.label, manualCoords: { lat: s.lat, lng: s.lng } }))}
               placeholder="Ej. Calle Real de Macuto, frente a la plaza"
-              className="mt-2 h-12 w-full rounded-xl border px-3.5 text-sm outline-none"
-              style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
             />
           )}
           {o.id === "referencia" && draft.loc === "referencia" && (
-            <input
-              value={draft.reference}
-              onChange={(e) => setDraft((d) => ({ ...d, reference: e.target.value }))}
-              placeholder="Ej. Cerca de la panadería, al lado de la cancha"
-              className="mt-2 h-12 w-full rounded-xl border px-3.5 text-sm outline-none"
-              style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-            />
+            <>
+              <input
+                value={draft.reference}
+                onChange={(e) => setDraft((d) => ({ ...d, reference: e.target.value }))}
+                placeholder="Ej. Cerca de la panadería, al lado de la cancha"
+                className="mt-2 h-12 w-full rounded-xl border px-3.5 text-sm outline-none"
+                style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+              />
+              <p className="mt-2.5 text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                Marcar zona aproximada en el mapa (opcional)
+              </p>
+              <RadiusPicker
+                value={draft.referenceArea}
+                onChange={(v) => setDraft((d) => ({ ...d, referenceArea: v }))}
+              />
+            </>
           )}
         </div>
       ))}
@@ -501,12 +514,14 @@ function Field({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const id = useId();
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+      <label htmlFor={id} className="mb-1.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
         {label}
       </label>
       <input
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
