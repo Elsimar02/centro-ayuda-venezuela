@@ -4,9 +4,32 @@ import { useEffect, useRef, useState } from "react";
 
 type Suggestion = { label: string; lat: number; lng: number };
 
-// Viewbox alrededor de La Guaira/Vargas para priorizar resultados cercanos,
-// countrycodes=ve para no recibir calles de España u otros países.
-const VIEWBOX = "-67.4,10.75,-66.4,10.45";
+type PhotonProperties = {
+  name?: string;
+  street?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  county?: string;
+  state?: string;
+  country?: string;
+};
+
+type PhotonFeature = {
+  properties: PhotonProperties;
+  geometry: { coordinates: [number, number] };
+};
+
+// Sesgamos la búsqueda hacia La Guaira (no la limitamos solo a ahí, Photon
+// usa esto como preferencia de cercanía, no como caja estricta).
+const BIAS_LAT = 10.606;
+const BIAS_LON = -66.915;
+
+function labelFor(p: PhotonProperties): string {
+  const place = p.city || p.town || p.village || p.county;
+  const parts = [p.name, p.street, place, p.state].filter(Boolean);
+  return [...new Set(parts)].join(", ");
+}
 
 export function AddressAutocomplete({
   value,
@@ -39,14 +62,18 @@ export function AddressAutocomplete({
       setLoading(true);
       try {
         const url =
-          "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6" +
-          `&countrycodes=ve&viewbox=${VIEWBOX}&bounded=0` +
+          `https://photon.komoot.io/api/?limit=6&lat=${BIAS_LAT}&lon=${BIAS_LON}` +
           `&q=${encodeURIComponent(query)}`;
-        const res = await fetch(url, { headers: { "Accept-Language": "es" } });
+        const res = await fetch(url);
         if (myReq !== reqRef.current) return;
-        const rows: { display_name: string; lat: string; lon: string }[] = await res.json();
+        const data: { features?: PhotonFeature[] } = await res.json();
         if (myReq !== reqRef.current) return;
-        setSuggestions(rows.map((r) => ({ label: r.display_name, lat: parseFloat(r.lat), lng: parseFloat(r.lon) })));
+        const rows = (data.features || []).map((f) => ({
+          label: labelFor(f.properties),
+          lng: f.geometry.coordinates[0],
+          lat: f.geometry.coordinates[1],
+        }));
+        setSuggestions(rows.filter((r) => r.label));
       } catch {
         if (myReq === reqRef.current) setSuggestions([]);
       } finally {
