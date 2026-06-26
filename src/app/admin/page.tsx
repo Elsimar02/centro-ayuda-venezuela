@@ -74,6 +74,7 @@ export default function AdminPage() {
       >
         <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
           <Link href="/" className="flex-shrink-0 text-sm font-bold" style={{ color: "var(--muted)" }}>‹ App</Link>
+          <VenezuelaFlag />
           <div className="truncate text-sm font-extrabold">Centro de operaciones</div>
         </div>
         <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
@@ -341,5 +342,37 @@ export default function AdminPage() {
         />
       )}
     </div>
+  );
+}
+
+function VenezuelaFlag() {
+  // Estrellas en arco (8 estrellas blancas sobre la franja azul)
+  const stars = Array.from({ length: 8 }, (_, i) => {
+    const angle = Math.PI + (i / 7) * Math.PI; // arco inferior
+    const cx = 11 + Math.cos(angle) * 6;
+    const cy = 9.5 + Math.sin(angle) * 2.6;
+    return <circle key={i} cx={cx} cy={cy} r={0.7} fill="#fff" />;
+  });
+  return (
+    <svg
+      width="22"
+      height="16"
+      viewBox="0 0 22 16"
+      role="img"
+      aria-label="Bandera de Venezuela"
+      className="flex-shrink-0 rounded-[3px]"
+      style={{ boxShadow: "0 0 0 1px var(--border)" }}
+    >
+      <rect width="22" height="16" rx="2" fill="#fff" />
+      <clipPath id="vflag">
+        <rect width="22" height="16" rx="2" />
+      </clipPath>
+      <g clipPath="url(#vflag)">
+        <rect width="22" height="5.34" y="0" fill="#FCDD09" />
+        <rect width="22" height="5.34" y="5.33" fill="#003893" />
+        <rect width="22" height="5.34" y="10.66" fill="#CF142B" />
+        {stars}
+      </g>
+    </svg>
   );
 }

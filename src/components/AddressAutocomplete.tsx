@@ -27,19 +27,21 @@ export function AddressAutocomplete({
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (value.trim().length < 3) {
-      setSuggestions([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+    const query = value.trim();
+
     debounceRef.current = setTimeout(async () => {
       const myReq = ++reqRef.current;
+      if (query.length < 3) {
+        setSuggestions([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       try {
         const url =
           "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6" +
           `&countrycodes=ve&viewbox=${VIEWBOX}&bounded=0` +
-          `&q=${encodeURIComponent(value)}`;
+          `&q=${encodeURIComponent(query)}`;
         const res = await fetch(url, { headers: { "Accept-Language": "es" } });
         const rows: { display_name: string; lat: string; lon: string }[] = await res.json();
         if (myReq !== reqRef.current) return;
@@ -49,7 +51,8 @@ export function AddressAutocomplete({
       } finally {
         if (myReq === reqRef.current) setLoading(false);
       }
-    }, 350);
+    }, query.length < 3 ? 0 : 350);
+
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
