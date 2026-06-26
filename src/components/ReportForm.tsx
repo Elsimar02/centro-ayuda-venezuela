@@ -116,14 +116,16 @@ export function ReportForm({
               <button
                 key={id}
                 onClick={() => setDraft((d) => ({ ...d, type: id as ReportType }))}
-                className="flex flex-col items-center gap-2 rounded-2xl border p-4 text-center"
+                className="flex min-h-[92px] w-full flex-col items-center gap-2 rounded-2xl border p-4 text-center"
                 style={{
                   background: draft.type === id ? "var(--accent-soft)" : "var(--surface-2)",
                   borderColor: draft.type === id ? "var(--accent)" : "var(--border)",
                 }}
               >
                 <span className="text-2xl">{c.emoji}</span>
-                <span className="text-xs font-bold leading-tight">{c.label}</span>
+                <span className="block w-full whitespace-normal break-words text-xs font-bold leading-tight">
+                  {c.label}
+                </span>
               </button>
             ))}
           </div>

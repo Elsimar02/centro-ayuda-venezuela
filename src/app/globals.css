@@ -42,11 +42,29 @@ body {
 .leaflet-container {
   font-family: "Manrope", system-ui, sans-serif;
   background: var(--surface-2);
+  isolation: isolate;
+  z-index: 0;
 }
 
 .ccc-pin {
   background: transparent !important;
   border: none !important;
+}
+
+.ccc-tooltip {
+  background: var(--surface) !important;
+  color: var(--fg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow) !important;
+  font-family: "Manrope", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  padding: 5px 9px !important;
+}
+
+.ccc-tooltip::before {
+  display: none !important;
 }
 
 @keyframes ccblink {

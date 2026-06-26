@@ -39,3 +39,17 @@ RLS policies are deliberately open (`using (true)`) for select/insert/update/del
 ## `legacy/`
 
 The original implementation, built as a Claude Designs `.dc.html` artifact (custom template DSL + a bundled React runtime). Kept for reference only; not part of the Next.js app and not linted (excluded in `eslint.config.mjs`).
+
+## Eficiencia (ahorro de tokens)
+
+- Leer archivos antes de escribir código. No asumir.
+- Respuestas cortas: sin preámbulos, sin resumen final, sin adulación.
+- Edit parcial siempre; Write solo si cambio >80%.
+- No releer archivos ya leídos en la conversación.
+- Paralelizar tool calls independientes.
+- No narrar el plan; solo ejecutar.
+- No duplicar en texto código ya editado.
+- Agent solo para búsquedas amplias; Grep/Read para búsquedas directas.
+- Mínimo viable: sin abstracciones ni features no pedidos.
+- No git push ni commits sin autorización explícita.
+- No levantar preview server sin permiso explícito.
