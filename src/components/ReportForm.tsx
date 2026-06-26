@@ -207,9 +207,9 @@ export function ReportForm({
           <div className="flex flex-col gap-4">
             {draft.type && PERSON_TYPES.includes(draft.type) && (
               <div>
-                <label className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
                   Estado de la persona
-                </label>
+                </div>
                 <div className="flex flex-col gap-2">
                   {PERSON_STATUS_OPTIONS.map((opt) => (
                     <button type="button"
@@ -231,9 +231,9 @@ export function ReportForm({
 
             {draft.type && PET_TYPES.includes(draft.type) && (
               <div>
-                <label className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
                   Estado de la mascota
-                </label>
+                </div>
                 <div className="flex flex-col gap-2">
                   {PET_STATUS_OPTIONS.map((opt) => (
                     <button type="button"
@@ -255,9 +255,9 @@ export function ReportForm({
 
             {draft.type && HELP_TYPES.includes(draft.type) && (
               <div>
-                <label className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
                   ¿Qué hay disponible?
-                </label>
+                </div>
                 <div className="flex flex-col gap-2">
                   {HELP_SERVICE_OPTIONS.map((opt) => {
                     const selected = (draft.extra.servicios || "").split(",").filter(Boolean);
@@ -313,9 +313,9 @@ export function ReportForm({
 
             {showPeople && (
               <div>
-                <label className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
                   Personas afectadas (aprox.)
-                </label>
+                </div>
                 <div className="flex items-center gap-3">
                   <button type="button"
                     onClick={() => setDraft((d) => ({ ...d, people: Math.max(0, d.people - 1) }))}
@@ -337,15 +337,16 @@ export function ReportForm({
             )}
 
             <div>
-              <label className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+              <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
                 Adjuntar foto (opcional)
-              </label>
+              </div>
               <label
                 className="flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border border-dashed p-4 text-xs font-bold"
                 style={{ borderColor: "var(--border)", color: "var(--fg-2)" }}
               >
                 <input
                   type="file"
+                  aria-label="Adjuntar foto"
                   accept="image/*"
                   disabled={uploading}
                   className="hidden"
@@ -375,9 +376,9 @@ export function ReportForm({
           <div className="flex flex-col gap-4">
             {showUrgency && (
               <div>
-                <label className="mb-2.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                <div className="mb-2.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
                   Nivel de urgencia
-                </label>
+                </div>
                 <div className="flex flex-col gap-2">
                   {(Object.entries(URG) as [Urgency, typeof URG[Urgency]][]).map(([id, u]) => (
                     <button type="button"
@@ -447,12 +448,14 @@ export function ReportForm({
   );
 }
 
+const LOCATION_OPTIONS: { id: Draft["loc"]; icon: string; title: string; subtitle: string }[] = [
+  { id: "gps", icon: "📍", title: "Usar mi ubicación GPS", subtitle: "La Guaira · ±12 m" },
+  { id: "manual", icon: "✏️", title: "Ingresar dirección", subtitle: "Sé la calle, barrio o avenida exacta" },
+  { id: "referencia", icon: "📌", title: 'No sé la dirección, doy una referencia', subtitle: 'Ej. "cerca de", "al lado de"' },
+];
+
 function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispatch<React.SetStateAction<Draft>> }) {
-  const options: { id: Draft["loc"]; icon: string; title: string; subtitle: string }[] = [
-    { id: "gps", icon: "📍", title: "Usar mi ubicación GPS", subtitle: "La Guaira · ±12 m" },
-    { id: "manual", icon: "✏️", title: "Ingresar dirección", subtitle: "Sé la calle, barrio o avenida exacta" },
-    { id: "referencia", icon: "📌", title: 'No sé la dirección, doy una referencia', subtitle: 'Ej. "cerca de", "al lado de"' },
-  ];
+  const options = LOCATION_OPTIONS;
   return (
     <div className="flex flex-col gap-2.5">
       {options.map((o) => (

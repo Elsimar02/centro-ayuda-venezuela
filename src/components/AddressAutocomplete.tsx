@@ -43,6 +43,7 @@ export function AddressAutocomplete({
           `&countrycodes=ve&viewbox=${VIEWBOX}&bounded=0` +
           `&q=${encodeURIComponent(query)}`;
         const res = await fetch(url, { headers: { "Accept-Language": "es" } });
+        if (myReq !== reqRef.current) return;
         const rows: { display_name: string; lat: string; lon: string }[] = await res.json();
         if (myReq !== reqRef.current) return;
         setSuggestions(rows.map((r) => ({ label: r.display_name, lat: parseFloat(r.lat), lng: parseFloat(r.lon) })));

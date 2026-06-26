@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { CATS, PEOPLE_COUNT_TYPES, Report, SHOW_URGENCY_TYPES, STATUS, TYPE_FIELDS, URG } from "@/lib/types";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { CATS, PEOPLE_COUNT_TYPES, RESOLVE_THRESHOLD, Report, SHOW_URGENCY_TYPES, STATUS, TYPE_FIELDS, URG } from "@/lib/types";
 import { telLink, waLink } from "@/lib/contact";
 import { ReportUpdates } from "@/components/ReportUpdates";
 
@@ -19,6 +20,7 @@ export function ReportDetailPanel({
   onVerify,
   onFalse,
   onAttended,
+  onResolved,
   onViewMap,
 }: {
   report: Report;
@@ -26,6 +28,7 @@ export function ReportDetailPanel({
   onVerify?: () => void;
   onFalse?: () => void;
   onAttended?: () => void;
+  onResolved?: () => void;
   onViewMap?: () => void;
 }) {
   const cat = CATS[report.type];
@@ -37,10 +40,21 @@ export function ReportDetailPanel({
   const reporterWa = report.contact_phone ? waLink(report.contact_phone) : null;
   const [lightbox, setLightbox] = useState<string | null>(null);
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (lightbox) setLightbox(null);
+      else onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightbox, onClose]);
+
   return (
     <div className="fixed inset-0 z-40 flex justify-end" aria-modal>
       <div
         className="absolute inset-0"
+        aria-hidden="true"
         style={{ background: "rgba(0,0,0,.35)", animation: "ccfadein .2s ease-out" }}
         onClick={onClose}
       />
@@ -144,8 +158,7 @@ export function ReportDetailPanel({
                       aria-label="Ampliar foto del reporte"
                       className="h-28 w-28 overflow-hidden rounded-xl"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={m.url} alt="Foto del reporte" className="h-full w-full object-cover" />
+                      <Image src={m.url} alt="Foto del reporte" width={112} height={112} className="h-full w-full object-cover" />
                     </button>
                   ) : null
                 )}
@@ -154,10 +167,11 @@ export function ReportDetailPanel({
           )}
 
           <Section title="Verificación ciudadana">
-            <div className="flex gap-4 text-sm" style={{ color: "var(--fg-2)" }}>
+            <div className="flex flex-wrap gap-4 text-sm" style={{ color: "var(--fg-2)" }}>
               <span>✓ {report.vc_confirm} confirmaron</span>
               <span>🏁 {report.vc_attended} atendido</span>
               <span>⚑ {report.vc_incorrect} incorrecto</span>
+              <span>✅ {report.vc_resolved}/{RESOLVE_THRESHOLD} dicen que ya está resuelto</span>
             </div>
           </Section>
 
@@ -176,17 +190,18 @@ export function ReportDetailPanel({
             >
               ×
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lightbox}
-              alt="Foto del reporte ampliada"
-              onClick={(e) => e.stopPropagation()}
-              className="max-h-full max-w-full rounded-xl object-contain"
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lightbox}
+                alt="Foto del reporte ampliada"
+                className="max-h-full max-w-full rounded-xl object-contain"
+              />
+            </div>
           </div>
         )}
 
-        {(onVerify || onAttended || onFalse || onViewMap) && (
+        {(onVerify || onAttended || onFalse || onResolved || onViewMap) && (
           <div
             className="sticky bottom-0 mt-auto flex flex-col gap-2 p-5"
             style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}
@@ -202,6 +217,13 @@ export function ReportDetailPanel({
                 <ActionButton onClick={onFalse} tone="red">⚑ Falso</ActionButton>
               )}
             </div>
+            {onResolved && (
+              <div className="flex">
+                <ActionButton onClick={onResolved} tone="accent">
+                  ✅ Ya está resuelto ({report.vc_resolved}/{RESOLVE_THRESHOLD})
+                </ActionButton>
+              </div>
+            )}
             {onViewMap && (
               <button type="button"
                 onClick={onViewMap}

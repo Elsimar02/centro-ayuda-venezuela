@@ -43,6 +43,7 @@ export type Report = {
   vc_confirm: number;
   vc_attended: number;
   vc_incorrect: number;
+  vc_resolved: number;
   reporter_name: string;
   contact_phone: string | null;
   details: Record<string, string>;
@@ -268,6 +269,26 @@ export const PEOPLE_COUNT_TYPES = new Set<ReportType>([
   "persona_encontrada_viva",
   "persona_fallecida",
 ]);
+
+// Un reporte solo puede eliminarse cuando más de 7 personas confirmaron que
+// ya está resuelto (umbral aplicado también a nivel de base de datos, ver
+// supabase/migration_4_resolved_threshold.sql).
+export const RESOLVE_THRESHOLD = 8;
+
+export type MapFilter = { id: string; label: string; emoji: string; types: ReportType[] | "todos" };
+
+export const MAP_FILTERS: MapFilter[] = [
+  { id: "todos", label: "Todos", emoji: "◎", types: "todos" },
+  { id: "personas", label: "Personas", emoji: "🔴", types: ["persona_desaparecida", "persona_encontrada_viva", "persona_fallecida"] },
+  { id: "atrapada", label: "Atrapados", emoji: "🆘", types: ["atrapada", "colapso"] },
+  { id: "calles", label: "Vías", emoji: "🚧", types: ["bloqueo", "peligro"] },
+  { id: "hospital", label: "Hospitales", emoji: "🏥", types: ["hospital", "hospital_insumos"] },
+  { id: "refugio", label: "Refugios", emoji: "⛺", types: ["refugio", "ayuda"] },
+  { id: "agua", label: "Agua", emoji: "💧", types: ["agua"] },
+  { id: "comida", label: "Comida", emoji: "🍞", types: ["alimentos"] },
+  { id: "medicinas", label: "Medicinas", emoji: "💊", types: ["insumos_disponibles"] },
+  { id: "mascotas", label: "Mascotas", emoji: "🐾", types: ["mascota_perdida", "mascota_encontrada"] },
+];
 
 export const STATUS: Record<ReportStatus, { label: string; color: string }> = {
   sin_verificar: { label: "Sin verificar", color: "#8b94a3" },
