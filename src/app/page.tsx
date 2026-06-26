@@ -66,10 +66,10 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <Link
             href="/admin"
-            className="hidden h-9 items-center rounded-lg border px-3 text-xs font-bold sm:flex"
+            className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
             style={{ borderColor: "var(--border)" }}
           >
-            🖥 Panel
+            🖥 <span className="hidden sm:inline">Panel</span>
           </Link>
           <button
             onClick={toggleTheme}

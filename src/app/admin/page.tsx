@@ -47,15 +47,21 @@ export default function AdminPage() {
   return (
     <div className="flex min-h-screen flex-col" style={{ background: "var(--bg)", color: "var(--fg)" }}>
       <header
-        className="sticky top-0 z-30 flex items-center justify-between gap-4 px-5 py-3.5"
+        className="sticky top-0 z-30 flex items-center justify-between gap-2 px-3.5 py-3 sm:gap-4 sm:px-5 sm:py-3.5"
         style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
       >
-        <div className="flex items-center gap-2.5">
-          <Link href="/" className="text-sm font-bold" style={{ color: "var(--muted)" }}>‹ App</Link>
-          <div className="text-sm font-extrabold">Centro de operaciones</div>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+          <Link href="/" className="flex-shrink-0 text-sm font-bold" style={{ color: "var(--muted)" }}>‹ App</Link>
+          <div className="truncate text-sm font-extrabold">Centro de operaciones</div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold" style={{ color: "var(--muted)" }}>{connectedUsers} conectado(s)</span>
+        <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
+          <span className="hidden text-xs font-bold sm:inline" style={{ color: "var(--muted)" }}>{connectedUsers} conectado(s)</span>
+          <span
+            className="flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-bold sm:hidden"
+            style={{ background: "var(--surface-2)", color: "var(--muted)" }}
+          >
+            ● {connectedUsers}
+          </span>
           <button
             onClick={() => setShowReport(true)}
             className="hidden h-9 items-center rounded-lg px-3.5 text-xs font-extrabold text-white sm:flex"
@@ -63,15 +69,43 @@ export default function AdminPage() {
           >
             + Reportar
           </button>
-          <button onClick={toggleTheme} className="flex h-9 w-9 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
+          <button onClick={toggleTheme} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
         </div>
       </header>
 
+      <nav
+        className="sticky top-[57px] z-20 flex gap-2 overflow-x-auto px-3 py-2 md:hidden"
+        style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
+      >
+        {NAV.map((n) => (
+          <button
+            key={n.id}
+            onClick={() => setSection(n.id)}
+            className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-bold whitespace-nowrap"
+            style={{
+              background: section === n.id ? "var(--accent)" : "var(--surface-2)",
+              color: section === n.id ? "#fff" : "var(--fg-2)",
+            }}
+          >
+            <span>{n.icon}</span>
+            {n.label}
+            {n.id === "reportes" && pending.length > 0 && (
+              <span
+                className="rounded-md px-1.5 py-0.5 text-[10px]"
+                style={{ background: section === n.id ? "rgba(255,255,255,.25)" : "var(--accent)", color: "#fff" }}
+              >
+                {pending.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
+
       <div className="flex flex-1">
         <aside
-          className="flex w-56 flex-shrink-0 flex-col gap-1 p-4"
+          className="hidden w-56 flex-shrink-0 flex-col gap-1 p-4 md:flex"
           style={{ borderRight: "1px solid var(--border)", background: "var(--surface)" }}
         >
           {NAV.map((n) => (
@@ -95,7 +129,7 @@ export default function AdminPage() {
           ))}
         </aside>
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3.5 sm:p-6">
           {section === "resumen" && (
             <div className="flex flex-col gap-5">
               <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-5">
@@ -190,6 +224,14 @@ export default function AdminPage() {
           )}
         </main>
       </div>
+
+      <button
+        onClick={() => setShowReport(true)}
+        className="fixed bottom-5 right-4 z-30 flex h-12 items-center gap-2 rounded-full px-5 text-sm font-extrabold text-white shadow-lg sm:hidden"
+        style={{ background: "var(--accent)" }}
+      >
+        + Reportar
+      </button>
 
       {showReport && (
         <ReportForm
