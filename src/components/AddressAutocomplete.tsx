@@ -20,10 +20,11 @@ type PhotonFeature = {
   geometry: { coordinates: [number, number] };
 };
 
-// Sesgamos la búsqueda hacia La Guaira (no la limitamos solo a ahí, Photon
-// usa esto como preferencia de cercanía, no como caja estricta).
-const BIAS_LAT = 10.606;
-const BIAS_LON = -66.915;
+// Sesgamos la búsqueda hacia el centro geográfico de Venezuela (la app cubre
+// todo el país, no una sola zona). Photon usa esto como preferencia de
+// cercanía, no como una caja estricta.
+const BIAS_LAT = 8;
+const BIAS_LON = -66;
 
 function labelFor(p: PhotonProperties): string {
   const place = p.city || p.town || p.village || p.county;

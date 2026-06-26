@@ -9,7 +9,7 @@ export function useReports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const offlineQueue = useRef<{ draft: Draft; city: string }[]>([]);
+  const offlineQueue = useRef<Draft[]>([]);
   const [queueCount, setQueueCount] = useState(0);
   useEffect(() => {
     const channelId = `reports-changes-${Math.random().toString(36).slice(2)}`;
@@ -54,13 +54,13 @@ export function useReports() {
     };
   }, []);
 
-  const submit = useCallback(async (draft: Draft, scenarioCity: string, offline: boolean) => {
+  const submit = useCallback(async (draft: Draft, offline: boolean) => {
     if (offline) {
-      offlineQueue.current.push({ draft, city: scenarioCity });
+      offlineQueue.current.push(draft);
       setQueueCount(offlineQueue.current.length);
       return { id: "pendiente (offline)" } as Report;
     }
-    const created = await submitReport(draft, scenarioCity);
+    const created = await submitReport(draft);
     setReports((prev) => (prev.some((r) => r.id === created.id) ? prev : [created, ...prev]));
     return created;
   }, []);
@@ -71,8 +71,8 @@ export function useReports() {
     setQueueCount(0);
     // Cada envío es independiente, así que los mandamos en paralelo.
     await Promise.all(
-      queue.map(({ draft, city }) =>
-        submitReport(draft, city).catch(() => {
+      queue.map((draft) =>
+        submitReport(draft).catch(() => {
           // se perderá si falla; el usuario puede reintentar manualmente
         })
       )

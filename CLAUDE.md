@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A citizen emergency-response app for the La Guaira earthquake (Venezuela): an interactive incident map and a multi-step report flow covering missing/found/deceased persons, structural emergencies, health-supply needs, shelters/resources, and lost/found pets — plus an admin dashboard for verification and moderation.
+A citizen emergency-response app for the June 2026 earthquakes in Venezuela — **national scope, not just La Guaira** (La Guaira/Vargas was the hardest-hit state and the original scenario, but the app now covers reports and collection centers across the whole country). An interactive incident map and a multi-step report flow covering missing/found/deceased persons, structural emergencies, health-supply needs, shelters/resources, donation collection points, and lost/found pets — plus an admin dashboard for verification and moderation.
 
 ## Commands
 

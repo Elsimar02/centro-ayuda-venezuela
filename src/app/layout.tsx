@@ -17,7 +17,7 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: "Centro de Coordinación Ciudadana",
-  description: "La Guaira · respuesta a emergencias",
+  description: "Venezuela · respuesta a emergencias",
 };
 
 export default function RootLayout({

@@ -38,11 +38,9 @@ const RadiusPicker = dynamic(() => import("@/components/RadiusPicker"), { ssr: f
 const STEPS = ["¿Qué ocurre?", "Ubicación", "Detalles", "Urgencia", "Revisar y enviar"];
 
 export function ReportForm({
-  scenarioCity,
   onSubmit,
   onClose,
 }: {
-  scenarioCity: string;
   onSubmit: (draft: Draft) => Promise<{ id: string }>;
   onClose: () => void;
 }) {
@@ -62,8 +60,14 @@ export function ReportForm({
     setStep((s) => s - 1);
   }
 
+  const hasLocation =
+    (draft.loc === "gps" && !!draft.gpsCoords) ||
+    (draft.loc === "manual" && !!draft.manualCoords) ||
+    (draft.loc === "referencia" && draft.reference.trim().length > 0);
+
   async function next() {
     if (step === 0 && !draft.type) return;
+    if (step === 1 && !hasLocation) return;
     if (step < 4) {
       setStep((s) => s + 1);
       return;
@@ -426,7 +430,9 @@ export function ReportForm({
                 ? draft.manual
                 : draft.loc === "referencia" && draft.reference
                 ? draft.reference
-                : `Tu ubicación GPS · ${scenarioCity}`}
+                : draft.gpsCoords
+                ? `Tu ubicación GPS · ${draft.gpsPlace || `${draft.gpsCoords.lat.toFixed(4)}, ${draft.gpsCoords.lng.toFixed(4)}`}`
+                : "Ubicación no especificada"}
             </div>
           </div>
         )}
@@ -437,7 +443,7 @@ export function ReportForm({
       <div className="flex gap-3 px-5 py-4" style={{ borderTop: "1px solid var(--border)" }}>
         <button type="button"
           onClick={next}
-          disabled={step === 0 && !draft.type}
+          disabled={(step === 0 && !draft.type) || (step === 1 && !hasLocation)}
           className="h-12 flex-1 rounded-2xl font-extrabold text-white disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
@@ -449,16 +455,74 @@ export function ReportForm({
 }
 
 const LOCATION_OPTIONS: { id: Draft["loc"]; icon: string; title: string; subtitle: string }[] = [
-  { id: "gps", icon: "📍", title: "Usar mi ubicación GPS", subtitle: "La Guaira · ±12 m" },
   { id: "manual", icon: "✏️", title: "Ingresar dirección", subtitle: "Sé la calle, barrio o avenida exacta" },
   { id: "referencia", icon: "📌", title: 'No sé la dirección, doy una referencia', subtitle: 'Ej. "cerca de", "al lado de"' },
 ];
 
+async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  try {
+    const res = await fetch(`https://photon.komoot.io/reverse?lon=${lng}&lat=${lat}`);
+    const data = await res.json();
+    const p = data?.features?.[0]?.properties;
+    if (!p) return null;
+    const place = p.city || p.town || p.village || p.county;
+    return [place, p.state].filter(Boolean).join(", ") || null;
+  } catch {
+    return null;
+  }
+}
+
 function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispatch<React.SetStateAction<Draft>> }) {
-  const options = LOCATION_OPTIONS;
+  const [gpsStatus, setGpsStatus] = useState<"idle" | "locating" | "done" | "error">(
+    draft.gpsCoords ? "done" : "idle"
+  );
+
+  function useGps() {
+    setDraft((d) => ({ ...d, loc: "gps" }));
+    if (!navigator.geolocation) {
+      setGpsStatus("error");
+      return;
+    }
+    setGpsStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setDraft((d) => ({ ...d, gpsCoords: { lat, lng } }));
+        setGpsStatus("done");
+        const place = await reverseGeocode(lat, lng);
+        setDraft((d) => ({ ...d, gpsPlace: place }));
+      },
+      () => setGpsStatus("error"),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  const gpsSubtitle =
+    gpsStatus === "locating"
+      ? "Obteniendo tu ubicación…"
+      : gpsStatus === "error"
+      ? "No se pudo obtener tu ubicación. Intenta de nuevo o usa otra opción."
+      : gpsStatus === "done"
+      ? draft.gpsPlace || `${draft.gpsCoords?.lat.toFixed(4)}, ${draft.gpsCoords?.lng.toFixed(4)}`
+      : "Detecta automáticamente dónde estás";
+
   return (
     <div className="flex flex-col gap-2.5">
-      {options.map((o) => (
+      <button type="button"
+        onClick={useGps}
+        className="flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left"
+        style={{
+          background: draft.loc === "gps" ? "var(--accent-soft)" : "var(--surface-2)",
+          borderColor: draft.loc === "gps" ? "var(--accent)" : "var(--border)",
+        }}
+      >
+        <span className="text-lg">📍</span>
+        <span className="flex-1">
+          <span className="block text-sm font-bold">Usar mi ubicación GPS</span>
+          <span className="block text-xs" style={{ color: "var(--muted)" }}>{gpsSubtitle}</span>
+        </span>
+      </button>
+      {LOCATION_OPTIONS.map((o) => (
         <div key={o.id}>
           <button type="button"
             onClick={() => setDraft((d) => ({ ...d, loc: o.id }))}
