@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .hs { scrollbar-width: none; -ms-overflow-style: none; }
+  .hs::-webkit-scrollbar { display: none; }
+  .ccc-pin { background: transparent !important; border: none !important; }
+  .leaflet-container { font-family: 'Manrope', system-ui, sans-serif; background: transparent; }
+  .leaflet-bar a, .leaflet-control-zoom a { border-radius: 10px !important; }
+  .marker-cluster div { font-family: 'Manrope', sans-serif; font-weight: 700; }
+  @keyframes ccpulse { 0% { transform: scale(0.6); opacity: 0.55; } 100% { transform: scale(2.4); opacity: 0; } }
+  @keyframes ccfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes ccsheet { from { transform: translateY(105%); } to { transform: translateY(0); } }
+  @keyframes ccspin { to { transform: rotate(360deg); } }
+  @keyframes ccblink { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+</style>
+</helmet>
+
+<div id="ccc-root" style="--bg:#e9ebef;--surface:#ffffff;--surface-2:#f4f5f7;--surface-3:#ebedf1;--fg:#15171c;--fg-2:#3d4350;--muted:#727a89;--border:rgba(17,20,28,0.09);--border-2:rgba(17,20,28,0.05);--accent:#e5484d;--accent-soft:rgba(229,72,77,0.10);--shadow:0 1px 2px rgba(16,20,30,0.06),0 10px 30px rgba(16,20,30,0.11);--shadow-sm:0 1px 2px rgba(16,20,30,0.09);--glass:rgba(255,255,255,0.74);min-height:100vh;background:var(--bg);color:var(--fg);font-family:'Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;transition:background .35s ease,color .35s ease">
+
+  <!-- ░░░ TOP CONTROL BAR ░░░ -->
+  <div style="position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;background:var(--glass);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0">
+      <div style="width:34px;height:34px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px var(--accent-soft);flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 8.8C5 13.5 12 21 12 21C12 21 19 13.5 19 8.8C19 5 16 2 12 2Z" fill="#fff"/><circle cx="12" cy="8.6" r="2.6" fill="var(--accent)"/></svg>
+      </div>
+      <div style="min-width:0">
+        <div style="font-weight:800;font-size:14.5px;letter-spacing:-0.2px;line-height:1.1;white-space:nowrap">Centro de Coordinación</div>
+        <div style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap">{{ cityLabel }} · respuesta a emergencias</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div style="display:flex;padding:3px;border-radius:12px;background:var(--surface-3);border:1px solid var(--border-2)">
+        <button onClick="{{ goApp }}" style="border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:9px;background:{{ appTabBg }};color:{{ appTabFg }};box-shadow:{{ appTabShadow }};transition:all .2s">📱 App</button>
+        <button onClick="{{ goAdmin }}" style="border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:9px;background:{{ adminTabBg }};color:{{ adminTabFg }};box-shadow:{{ adminTabShadow }};transition:all .2s">🖥 Panel</button>
+      </div>
+      <button onClick="{{ toggleTheme }}" title="Cambiar tema" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--fg);box-shadow:var(--shadow-sm)">
+        <span style="font-size:16px">{{ themeIcon }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ░░░░░░░░░░░░░░░░ MOBILE APP ░░░░░░░░░░░░░░░░ -->
+  <sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;justify-content:center;padding:34px 16px 60px;min-height:calc(100vh - 66px)">
+    <div style="position:relative;filter:drop-shadow(0 30px 60px rgba(16,20,30,0.22))">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ isDark }}" hint-size="402px,874px">
+
+        <div id="ccc-app" style="position:relative;height:100%;width:100%;overflow:hidden;background:var(--surface-2);isolation:isolate">
+
+          <!-- MAP -->
+          <div id="ccc-map" style="position:absolute;inset:0;z-index:1"></div>
+
+          <!-- search + actions row -->
+          <div style="position:absolute;top:62px;left:13px;right:13px;z-index:30;display:flex;gap:9px">
+            <button onClick="{{ openSearch }}" style="flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:46px;padding:0 15px;border-radius:14px;border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:var(--shadow);cursor:pointer;text-align:left">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="var(--muted)" stroke-width="2"/><path d="M20 20l-3.2-3.2" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/></svg>
+              <span style="color:var(--muted);font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Buscar dirección, barrio…</span>
+            </button>
+            <button onClick="{{ toggleLayers }}" title="Capas" style="width:46px;height:46px;flex-shrink:0;border-radius:14px;border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:var(--shadow);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--fg)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l9 5-9 5-9-5 9-5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3 13l9 5 9-5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+
+          <!-- offline pill -->
+          <div style="position:absolute;top:118px;left:13px;z-index:29">
+            <button onClick="{{ toggleOffline }}" style="display:flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:9px;border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow-sm);cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:{{ connColor }}">
+              <span style="width:7px;height:7px;border-radius:50%;background:{{ connColor }};box-shadow:0 0 0 3px {{ connHalo }}"></span>{{ connLabel }}
+            </button>
+          </div>
+
+          <!-- filter chips -->
+          <div class="hs" style="position:absolute;top:158px;left:0;right:0;z-index:28;display:flex;gap:8px;overflow-x:auto;padding:0 13px 2px;scroll-padding:13px">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="7">
+              <button onClick="{{ c.onTap }}" style="flex-shrink:0;display:flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:11px;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;background:{{ c.bg }};color:{{ c.fg }};border:1px solid {{ c.border }};box-shadow:{{ c.shadow }};transition:all .15s">
+                <span style="font-size:13px">{{ c.emoji }}</span>{{ c.label }}
+              </button>
+            </sc-for>
+          </div>
+
+          <!-- right rail: locate + legend -->
+          <div style="position:absolute;right:13px;bottom:206px;z-index:28;display:flex;flex-direction:column;gap:9px">
+            <button onClick="{{ toggleLegend }}" title="Leyenda" style="width:44px;height:44px;border-radius:13px;border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--fg)">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="4" cy="6" r="1.6" fill="var(--accent)"/><circle cx="4" cy="12" r="1.6" fill="#2563eb"/><circle cx="4" cy="18" r="1.6" fill="#16a34a"/></svg>
+            </button>
+            <button onClick="{{ locate }}" title="Mi ubicación" style="width:44px;height:44px;border-radius:13px;border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--accent)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="currentColor"/><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+
+          <!-- FAB report -->
+          <button onClick="{{ openReport }}" style="position:absolute;right:13px;bottom:34px;z-index:32;display:flex;align-items:center;gap:9px;height:56px;padding:0 22px 0 18px;border-radius:18px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-family:inherit;font-weight:800;font-size:15px;box-shadow:0 8px 22px rgba(229,72,77,0.45),0 2px 6px rgba(229,72,77,0.4)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>
+            Reportar
+          </button>
+
+          <!-- LAYERS PANEL -->
+          <sc-if value="{{ layersOpen }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ toggleLayers }}" style="position:absolute;inset:0;z-index:40;background:rgba(10,12,16,0.28)"></div>
+            <div style="position:absolute;top:120px;right:13px;z-index:41;width:230px;border-radius:18px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);padding:14px;animation:ccfade .22s ease">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Tipo de mapa</div>
+              <div style="display:flex;gap:8px;margin-bottom:14px">
+                <button onClick="{{ setBaseStreets }}" style="flex:1;height:38px;border-radius:11px;cursor:pointer;font-family:inherit;font-weight:700;font-size:12.5px;background:{{ baseStreetsBg }};color:{{ baseStreetsFg }};border:1px solid {{ baseStreetsBorder }}">Mapa</button>
+                <button onClick="{{ setBaseSat }}" style="flex:1;height:38px;border-radius:11px;cursor:pointer;font-family:inherit;font-weight:700;font-size:12.5px;background:{{ baseSatBg }};color:{{ baseSatFg }};border:1px solid {{ baseSatBorder }}">Satélite</button>
+              </div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Capas</div>
+              <sc-for list="{{ layerToggles }}" as="lt" hint-placeholder-count="3">
+                <button onClick="{{ lt.onTap }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 4px;border:none;background:none;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--fg)">
+                  <span style="display:flex;align-items:center;gap:9px">{{ lt.emoji }} {{ lt.label }}</span>
+                  <span style="width:38px;height:22px;border-radius:11px;background:{{ lt.track }};position:relative;transition:all .2s"><span style="position:absolute;top:2px;left:{{ lt.knob }};width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:all .2s"></span></span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- LEGEND -->
+          <sc-if value="{{ legendOpen }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ toggleLegend }}" style="position:absolute;inset:0;z-index:40;background:rgba(10,12,16,0.28)"></div>
+            <div class="hs" style="position:absolute;bottom:34px;left:13px;right:13px;z-index:41;max-height:360px;overflow-y:auto;border-radius:20px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);padding:16px;animation:ccfade .22s ease">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <div style="font-weight:800;font-size:15px">Leyenda</div>
+                <button onClick="{{ toggleLegend }}" style="border:none;background:var(--surface-3);width:28px;height:28px;border-radius:9px;cursor:pointer;color:var(--fg);font-size:15px">✕</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 12px">
+                <sc-for list="{{ legendItems }}" as="lg" hint-placeholder-count="12">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <span style="width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:{{ lg.color }};display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.25)"><span style="transform:rotate(45deg);font-size:12px">{{ lg.emoji }}</span></span>
+                    <span style="font-size:12.5px;font-weight:600;color:var(--fg-2);line-height:1.15">{{ lg.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- BOTTOM SHEET (selected) -->
+          <sc-if value="{{ hasSelected }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:11px;right:11px;bottom:34px;z-index:34;border-radius:22px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);padding:16px;animation:ccsheet .32s cubic-bezier(.16,1,.3,1)">
+              <div style="display:flex;gap:13px">
+                <div style="width:50px;height:50px;border-radius:14px;background:{{ sel.colorSoft }};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:24px">{{ sel.emoji }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                    <span style="font-weight:800;font-size:15.5px;letter-spacing:-0.2px">{{ sel.catLabel }}</span>
+                    <span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:{{ sel.statusSoft }};color:{{ sel.statusColor }}">{{ sel.statusLabel }}</span>
+                  </div>
+                  <div style="font-size:12.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 {{ sel.place }} · {{ sel.time }}</div>
+                </div>
+                <button onClick="{{ closeSheet }}" style="border:none;background:var(--surface-3);width:30px;height:30px;border-radius:9px;cursor:pointer;color:var(--muted);font-size:15px;flex-shrink:0">✕</button>
+              </div>
+              <p style="margin:12px 0;font-size:13.5px;line-height:1.5;color:var(--fg-2)">{{ sel.desc }}</p>
+              <div style="display:flex;gap:9px;margin-bottom:14px">
+                <div style="flex:1;background:var(--surface-2);border:1px solid var(--border-2);border-radius:12px;padding:9px 11px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);font-weight:700">Urgencia</div><div style="font-weight:800;font-size:13.5px;color:{{ sel.urgColor }};margin-top:2px">{{ sel.urgLabel }}</div></div>
+                <div style="flex:1;background:var(--surface-2);border:1px solid var(--border-2);border-radius:12px;padding:9px 11px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);font-weight:700">Confianza</div><div style="font-weight:800;font-size:13.5px;color:{{ sel.confColor }};margin-top:2px">{{ sel.confidence }}%</div></div>
+                <div style="flex:1;background:var(--surface-2);border:1px solid var(--border-2);border-radius:12px;padding:9px 11px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);font-weight:700">Personas</div><div style="font-weight:800;font-size:13.5px;margin-top:2px">{{ sel.people }}</div></div>
+              </div>
+              <div style="display:flex;gap:9px">
+                <button onClick="{{ sel.onDetail }}" style="flex:1;height:46px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 4px 14px var(--accent-soft)">Ver detalle</button>
+                <button style="width:46px;height:46px;border-radius:13px;border:1px solid var(--border);background:var(--surface-2);color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ░░ SEARCH OVERLAY ░░ -->
+          <sc-if value="{{ searchOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;z-index:55;background:var(--surface);animation:ccfade .2s ease;display:flex;flex-direction:column">
+              <div style="padding:60px 14px 12px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--border)">
+                <div style="flex:1;display:flex;align-items:center;gap:9px;height:46px;padding:0 14px;border-radius:13px;background:var(--surface-2);border:1px solid var(--border)">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="var(--muted)" stroke-width="2"/><path d="M20 20l-3.2-3.2" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/></svg>
+                  <span style="color:var(--muted);font-size:14.5px;font-weight:500">Buscar en {{ cityLabel }}…</span>
+                </div>
+                <button onClick="{{ closeSearch }}" style="border:none;background:none;color:var(--accent);font-family:inherit;font-weight:700;font-size:14.5px;cursor:pointer">Cerrar</button>
+              </div>
+              <div class="hs" style="flex:1;overflow-y:auto;padding:8px 0 30px">
+                <div style="padding:12px 18px 6px;font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--muted)">Reportes cercanos</div>
+                <sc-for list="{{ searchList }}" as="r" hint-placeholder-count="8">
+                  <button onClick="{{ r.onTap }}" style="width:100%;display:flex;align-items:center;gap:13px;padding:11px 18px;border:none;background:none;cursor:pointer;text-align:left">
+                    <span style="width:40px;height:40px;border-radius:12px;background:{{ r.colorSoft }};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">{{ r.emoji }}</span>
+                    <span style="flex:1;min-width:0"><span style="display:block;font-weight:700;font-size:14px;color:var(--fg)">{{ r.catLabel }}</span><span style="display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.place }} · {{ r.time }}</span></span>
+                    <span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:{{ r.statusSoft }};color:{{ r.statusColor }};flex-shrink:0">{{ r.statusLabel }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ░░ REPORT FLOW OVERLAY ░░ -->
+          <sc-if value="{{ showReport }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;z-index:56;background:var(--surface);animation:ccfade .22s ease;display:flex;flex-direction:column">
+              <!-- header -->
+              <div style="padding:58px 16px 10px;flex-shrink:0">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                  <button onClick="{{ reportBack }}" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;color:var(--fg);font-size:18px;display:flex;align-items:center;justify-content:center">‹</button>
+                  <div style="font-weight:800;font-size:15px">Nuevo reporte</div>
+                  <button onClick="{{ closeReport }}" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;color:var(--muted);font-size:14px;display:flex;align-items:center;justify-content:center">✕</button>
+                </div>
+                <div style="display:flex;gap:5px">
+                  <sc-for list="{{ stepDots }}" as="d" hint-placeholder-count="5">
+                    <span style="flex:1;height:5px;border-radius:3px;background:{{ d.bg }};transition:background .3s"></span>
+                  </sc-for>
+                </div>
+                <div style="font-size:12px;color:var(--muted);margin-top:9px;font-family:'DM Mono',monospace">Paso {{ stepNum }} de 5 · {{ stepTitle }}</div>
+              </div>
+
+              <div class="hs" style="flex:1;overflow-y:auto;padding:6px 16px 24px">
+                <!-- STEP 0: tipo -->
+                <sc-if value="{{ rs0 }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;animation:ccfade .25s ease">
+                    <sc-for list="{{ typeGrid }}" as="t" hint-placeholder-count="12">
+                      <button onClick="{{ t.onTap }}" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:16px;cursor:pointer;background:{{ t.bg }};border:1.5px solid {{ t.border }};transition:all .15s">
+                        <span style="width:44px;height:44px;border-radius:13px;background:{{ t.iconBg }};display:flex;align-items:center;justify-content:center;font-size:23px">{{ t.emoji }}</span>
+                        <span style="font-size:12.5px;font-weight:700;color:var(--fg);text-align:center;line-height:1.2">{{ t.label }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <!-- STEP 1: ubicación -->
+                <sc-if value="{{ rs1 }}" hint-placeholder-val="{{ false }}">
+                  <div style="animation:ccfade .25s ease">
+                    <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px;position:relative;height:150px;background:var(--surface-2)">
+                      <div id="ccc-mini" style="position:absolute;inset:0"></div>
+                      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);z-index:5;pointer-events:none"><div style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--accent);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.4)"></div></div>
+                    </div>
+                    <button onClick="{{ setGps }}" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;cursor:pointer;text-align:left;margin-bottom:10px;background:{{ gpsBg }};border:1.5px solid {{ gpsBorder }}">
+                      <span style="width:38px;height:38px;border-radius:11px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.4" fill="currentColor"/><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                      <span style="flex:1"><span style="display:block;font-weight:700;font-size:14px">Usar mi ubicación GPS</span><span style="display:block;font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">{{ gpsCoords }} · ±12 m</span></span>
+                      <span style="width:22px;height:22px;border-radius:50%;border:2px solid {{ gpsRing }};display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ gpsCheck }}</span>
+                    </button>
+                    <button onClick="{{ setManual }}" style="width:100%;display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;cursor:pointer;text-align:left;background:{{ manBg }};border:1.5px solid {{ manBorder }}">
+                      <span style="width:38px;height:38px;border-radius:11px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:18px">✏️</span>
+                      <span style="flex:1"><span style="display:block;font-weight:700;font-size:14px">Ingresar dirección manualmente</span><span style="display:block;font-size:12px;color:var(--muted)">Barrio, calle o referencia</span></span>
+                      <span style="width:22px;height:22px;border-radius:50%;border:2px solid {{ manRing }};display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ manCheck }}</span>
+                    </button>
+                    <sc-if value="{{ draftManual }}" hint-placeholder-val="{{ false }}">
+                      <input value="{{ draft.manual }}" onInput="{{ onManual }}" placeholder="Ej. Calle Real de Macuto, frente a la plaza" style="width:100%;margin-top:10px;height:48px;padding:0 14px;border-radius:13px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;outline:none"/>
+                    </sc-if>
+                  </div>
+                </sc-if>
+
+                <!-- STEP 2: detalles -->
+                <sc-if value="{{ rs2 }}" hint-placeholder-val="{{ false }}">
+                  <div style="animation:ccfade .25s ease">
+                    <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin-bottom:7px">Describe la situación</label>
+                    <textarea value="{{ draft.desc }}" onInput="{{ onDesc }}" placeholder="Ej. Hay personas atrapadas bajo escombros en una vivienda de 2 pisos. Se escuchan voces." style="width:100%;height:108px;padding:13px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;line-height:1.5;outline:none;resize:none"></textarea>
+
+                    <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin:18px 0 9px">Personas afectadas (aprox.)</label>
+                    <div style="display:flex;align-items:center;gap:14px">
+                      <button onClick="{{ decPeople }}" style="width:46px;height:46px;border-radius:13px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;font-size:22px;color:var(--fg)">−</button>
+                      <div style="flex:1;text-align:center;font-weight:800;font-size:24px">{{ draft.people }}</div>
+                      <button onClick="{{ incPeople }}" style="width:46px;height:46px;border-radius:13px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;font-size:22px;color:var(--fg)">+</button>
+                    </div>
+
+                    <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin:18px 0 9px">Adjuntar evidencia (opcional)</label>
+                    <div style="display:flex;gap:9px">
+                      <button onClick="{{ addPhoto }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:13px;border:1.5px dashed var(--border);background:var(--surface-2);cursor:pointer;color:var(--fg-2);font-family:inherit;font-weight:700;font-size:12px"><span style="font-size:20px">📷</span>Foto</button>
+                      <button onClick="{{ addVideo }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:13px;border:1.5px dashed var(--border);background:var(--surface-2);cursor:pointer;color:var(--fg-2);font-family:inherit;font-weight:700;font-size:12px"><span style="font-size:20px">🎥</span>Video</button>
+                      <button onClick="{{ addAudio }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:13px;border:1.5px dashed var(--border);background:var(--surface-2);cursor:pointer;color:var(--fg-2);font-family:inherit;font-weight:700;font-size:12px"><span style="font-size:20px">🎙️</span>Audio</button>
+                    </div>
+                    <sc-if value="{{ hasMedia }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:11px">
+                        <sc-for list="{{ mediaChips }}" as="m" hint-placeholder-count="2">
+                          <span style="display:flex;align-items:center;gap:7px;padding:7px 11px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700">{{ m.label }} <button onClick="{{ m.onRemove }}" style="border:none;background:none;color:var(--accent);cursor:pointer;font-size:13px;padding:0">✕</button></span>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+
+                <!-- STEP 3: urgencia -->
+                <sc-if value="{{ rs3 }}" hint-placeholder-val="{{ false }}">
+                  <div style="animation:ccfade .25s ease">
+                    <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin-bottom:10px">Nivel de urgencia</label>
+                    <div style="display:flex;flex-direction:column;gap:9px">
+                      <sc-for list="{{ urgGrid }}" as="u" hint-placeholder-count="4">
+                        <button onClick="{{ u.onTap }}" style="display:flex;align-items:center;gap:13px;padding:15px;border-radius:14px;cursor:pointer;text-align:left;background:{{ u.bg }};border:1.5px solid {{ u.border }}">
+                          <span style="width:14px;height:14px;border-radius:50%;background:{{ u.color }};flex-shrink:0;box-shadow:0 0 0 4px {{ u.halo }}"></span>
+                          <span style="flex:1"><span style="display:block;font-weight:800;font-size:14.5px;color:var(--fg)">{{ u.label }}</span><span style="display:block;font-size:12px;color:var(--muted)">{{ u.hint }}</span></span>
+                          <span style="font-size:18px;color:{{ u.check }}">{{ u.checkMark }}</span>
+                        </button>
+                      </sc-for>
+                    </div>
+                    <label style="display:block;font-size:12.5px;font-weight:700;color:var(--fg-2);margin:18px 0 9px">Contacto (opcional)</label>
+                    <input value="{{ draft.name }}" onInput="{{ onName }}" placeholder="Tu nombre" style="width:100%;height:48px;padding:0 14px;border-radius:13px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;outline:none;margin-bottom:9px"/>
+                    <input value="{{ draft.phone }}" onInput="{{ onPhone }}" placeholder="Teléfono" inputmode="tel" style="width:100%;height:48px;padding:0 14px;border-radius:13px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-size:14px;outline:none"/>
+                  </div>
+                </sc-if>
+
+                <!-- STEP 4: revisar + IA -->
+                <sc-if value="{{ rs4 }}" hint-placeholder-val="{{ false }}">
+                  <div style="animation:ccfade .25s ease">
+                    <div style="border-radius:16px;border:1px solid var(--border);background:linear-gradient(135deg,var(--accent-soft),transparent);padding:15px;margin-bottom:14px">
+                      <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
+                        <span style="width:30px;height:30px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center">✦</span>
+                        <span style="font-weight:800;font-size:14px">Asistente IA</span>
+                        <span style="margin-left:auto;font-size:10.5px;font-weight:700;color:#16a34a;background:rgba(22,163,74,0.14);padding:3px 8px;border-radius:7px">Sin spam</span>
+                      </div>
+                      <div style="display:flex;flex-direction:column;gap:10px">
+                        <div style="display:flex;gap:10px"><span style="font-size:11px;color:var(--muted);width:84px;flex-shrink:0;padding-top:1px">Clasificación</span><span style="font-size:13px;font-weight:700;color:var(--fg)">{{ aiClass }}</span></div>
+                        <div style="display:flex;gap:10px"><span style="font-size:11px;color:var(--muted);width:84px;flex-shrink:0;padding-top:1px">Prioridad</span><span style="font-size:13px;font-weight:700;color:{{ aiPrioColor }}">{{ aiPrio }}</span></div>
+                        <div style="display:flex;gap:10px"><span style="font-size:11px;color:var(--muted);width:84px;flex-shrink:0;padding-top:1px">Resumen</span><span style="font-size:12.5px;line-height:1.45;color:var(--fg-2)">{{ aiSummary }}</span></div>
+                        <div style="display:flex;gap:10px;align-items:center"><span style="font-size:11px;color:var(--muted);width:84px;flex-shrink:0">Duplicados</span><span style="font-size:12.5px;font-weight:700;color:#16a34a">No se detectaron reportes similares cercanos</span></div>
+                      </div>
+                    </div>
+                    <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface-2);overflow:hidden">
+                      <div style="padding:13px 15px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--border-2)"><span style="width:42px;height:42px;border-radius:12px;background:{{ revColorSoft }};display:flex;align-items:center;justify-content:center;font-size:21px">{{ revEmoji }}</span><span><span style="display:block;font-weight:800;font-size:14.5px">{{ revLabel }}</span><span style="display:block;font-size:12px;color:var(--muted)">{{ revUrg }} · {{ revPeople }} persona(s)</span></span></div>
+                      <div style="padding:13px 15px;font-size:13px;line-height:1.5;color:var(--fg-2);border-bottom:1px solid var(--border-2)">{{ revDesc }}</div>
+                      <div style="padding:11px 15px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)">📍 {{ revPlace }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+
+              <!-- footer -->
+              <div style="flex-shrink:0;padding:12px 16px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:10px">
+                <button onClick="{{ reportNext }}" style="flex:1;height:52px;border-radius:15px;border:none;background:{{ nextBg }};color:{{ nextFg }};font-family:inherit;font-weight:800;font-size:15px;cursor:pointer;box-shadow:{{ nextShadow }};opacity:{{ nextOpacity }};transition:all .2s">{{ nextLabel }}</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ░░ DETAIL OVERLAY ░░ -->
+          <sc-if value="{{ showDetail }}" hint-placeholder-val="{{ false }}">
+            <div class="hs" style="position:absolute;inset:0;z-index:56;background:var(--surface);animation:ccfade .22s ease;overflow-y:auto">
+              <div style="position:relative;height:178px;background:{{ det.colorSoft }};display:flex;align-items:center;justify-content:center">
+                <div style="font-size:60px;opacity:0.9">{{ det.emoji }}</div>
+                <div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:flex-start;padding:14px;background:linear-gradient(transparent,rgba(0,0,0,0.04))"></div>
+                <button onClick="{{ closeDetail }}" style="position:absolute;top:56px;left:14px;width:40px;height:40px;border-radius:12px;border:none;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:pointer;color:var(--fg);font-size:19px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm)">‹</button>
+                <span style="position:absolute;top:60px;right:14px;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--fg-2);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:6px 10px;border-radius:8px">#{{ det.id }}</span>
+                <sc-if value="{{ det.hasMedia }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;bottom:14px;right:14px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);padding:6px 10px;border-radius:8px">📷 {{ det.mediaCount }} adjunto(s)</span>
+                </sc-if>
+              </div>
+
+              <div style="padding:18px 18px 40px">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                  <span style="font-size:11px;font-weight:700;padding:4px 9px;border-radius:8px;background:{{ det.statusSoft }};color:{{ det.statusColor }}">● {{ det.statusLabel }}</span>
+                  <span style="font-size:11px;font-weight:700;padding:4px 9px;border-radius:8px;background:{{ det.urgSoft }};color:{{ det.urgColor }}">{{ det.urgLabel }}</span>
+                </div>
+                <h2 style="margin:6px 0 4px;font-size:22px;font-weight:800;letter-spacing:-0.4px">{{ det.catLabel }}</h2>
+                <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px">📍 {{ det.place }} · {{ det.time }}</div>
+
+                <!-- AI summary -->
+                <div style="border-radius:14px;border:1px solid var(--border);background:var(--surface-2);padding:13px 15px;margin-bottom:16px">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><span style="width:22px;height:22px;border-radius:7px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px">✦</span><span style="font-size:12px;font-weight:800;letter-spacing:0.2px">Resumen IA</span></div>
+                  <p style="margin:0;font-size:13px;line-height:1.55;color:var(--fg-2)">{{ det.aiSummary }}</p>
+                </div>
+
+                <p style="margin:0 0 18px;font-size:14.5px;line-height:1.6;color:var(--fg)">{{ det.desc }}</p>
+
+                <!-- confidence -->
+                <div style="border-radius:14px;border:1px solid var(--border);padding:15px;margin-bottom:16px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px"><span style="font-weight:800;font-size:14px">Nivel de confianza</span><span style="font-weight:800;font-size:15px;color:{{ det.confColor }}">{{ det.confidence }}%</span></div>
+                  <div style="height:9px;border-radius:5px;background:var(--surface-3);overflow:hidden"><div style="height:100%;width:{{ det.confWidth }};border-radius:5px;background:{{ det.confColor }};transition:width .4s ease"></div></div>
+                  <div style="display:flex;gap:16px;margin-top:12px">
+                    <span style="font-size:12px;color:var(--muted)"><b style="color:#16a34a;font-size:14px">{{ det.vConfirm }}</b> confirman</span>
+                    <span style="font-size:12px;color:var(--muted)"><b style="color:#2563eb;font-size:14px">{{ det.vAttended }}</b> atendido</span>
+                    <span style="font-size:12px;color:var(--muted)"><b style="color:#dc2626;font-size:14px">{{ det.vIncorrect }}</b> incorrecto</span>
+                  </div>
+                </div>
+
+                <!-- verification actions -->
+                <div style="font-size:12.5px;font-weight:700;color:var(--fg-2);margin-bottom:10px">¿Puedes verificar este reporte?</div>
+                <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">
+                  <button onClick="{{ det.onConfirm }}" style="display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:13px;border:1px solid rgba(22,163,74,0.3);background:rgba(22,163,74,0.08);cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;color:#15803d"><span style="font-size:17px">✓</span> Confirmo este reporte</button>
+                  <button onClick="{{ det.onAttended }}" style="display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:13px;border:1px solid rgba(37,99,235,0.3);background:rgba(37,99,235,0.08);cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;color:#1d4ed8"><span style="font-size:17px">🛟</span> Ya fue atendido</button>
+                  <button onClick="{{ det.onIncorrect }}" style="display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:13px;border:1px solid rgba(220,38,38,0.3);background:rgba(220,38,38,0.08);cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;color:#b91c1c"><span style="font-size:17px">⚠</span> La información es incorrecta</button>
+                </div>
+
+                <!-- meta -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div style="background:var(--surface-2);border:1px solid var(--border-2);border-radius:12px;padding:11px 13px"><div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);font-weight:700">Personas</div><div style="font-weight:800;font-size:16px;margin-top:2px">{{ det.people }}</div></div>
+                  <div style="background:var(--surface-2);border:1px solid var(--border-2);border-radius:12px;padding:11px 13px"><div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);font-weight:700">Reportado por</div><div style="font-weight:800;font-size:14px;margin-top:2px">{{ det.reporter }}</div></div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ░░ SENT OVERLAY ░░ -->
+          <sc-if value="{{ showSent }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;z-index:57;background:var(--surface);animation:ccfade .25s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center">
+              <div style="width:92px;height:92px;border-radius:50%;background:{{ sentRingBg }};display:flex;align-items:center;justify-content:center;margin-bottom:24px">
+                <span style="font-size:46px">{{ sentIcon }}</span>
+              </div>
+              <h2 style="margin:0 0 8px;font-size:23px;font-weight:800;letter-spacing:-0.4px">{{ sentTitle }}</h2>
+              <p style="margin:0 0 6px;font-size:14.5px;color:var(--fg-2);line-height:1.5;max-width:280px">{{ sentBody }}</p>
+              <div style="font-family:'DM Mono',monospace;font-size:12.5px;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);padding:8px 14px;border-radius:10px;margin:16px 0 26px">{{ sentId }}</div>
+              <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px">
+                <button onClick="{{ sentToMap }}" style="height:52px;border-radius:15px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 6px 18px var(--accent-soft)">Ver en el mapa</button>
+                <button onClick="{{ sentAnother }}" style="height:52px;border-radius:15px;border:1px solid var(--border);background:var(--surface-2);color:var(--fg);font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">Crear otro reporte</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- toast -->
+          <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;bottom:104px;left:50%;transform:translateX(-50%);z-index:70;background:rgba(20,23,28,0.94);color:#fff;padding:12px 18px;border-radius:13px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.35);animation:ccfade .25s ease;white-space:nowrap;max-width:340px">{{ toast }}</div>
+          </sc-if>
+
+        </div>
+      </x-import>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ░░░░░░░░░░░░░░░░ ADMIN DASHBOARD ░░░░░░░░░░░░░░░░ -->
+  <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;min-height:calc(100vh - 66px)">
+    <!-- sidebar -->
+    <aside style="width:236px;flex-shrink:0;border-right:1px solid var(--border);padding:22px 16px;display:flex;flex-direction:column;gap:6px;background:var(--surface)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);padding:0 10px 8px">Coordinación</div>
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="6">
+        <button onClick="{{ n.onTap }}" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;text-align:left;background:{{ n.bg }};color:{{ n.fg }}">
+          <span style="font-size:16px;width:20px;text-align:center">{{ n.icon }}</span>{{ n.label }}
+          <sc-if value="{{ n.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto;font-size:10.5px;font-weight:800;background:var(--accent);color:#fff;padding:2px 7px;border-radius:7px">{{ n.badge }}</span></sc-if>
+        </button>
+      </sc-for>
+      <div style="flex:1"></div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 8px">
+          <div style="width:34px;height:34px;border-radius:10px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px">MR</div>
+          <div style="min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">M. Rodríguez</div><div style="font-size:11px;color:var(--muted)">Moderador</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- main -->
+    <main class="hs" style="flex:1;min-width:0;overflow-y:auto;max-height:calc(100vh - 66px);padding:24px 28px 60px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:22px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px"><h1 style="margin:0;font-size:25px;font-weight:800;letter-spacing:-0.5px">Centro de operaciones</h1><span style="display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#16a34a;background:rgba(22,163,74,0.12);padding:5px 10px;border-radius:8px"><span style="width:7px;height:7px;border-radius:50%;background:#16a34a;animation:ccblink 1.6s infinite"></span>EN VIVO</span></div>
+          <div style="font-size:13.5px;color:var(--muted);margin-top:4px">Sismo M6.2 · {{ cityLabel }}, Venezuela · actualizado hace 12 s</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 13px;border-radius:11px;border:1px solid var(--border);background:var(--surface)">
+            <div style="display:flex">
+              <span style="width:26px;height:26px;border-radius:50%;background:#2563eb;border:2px solid var(--surface);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">JL</span>
+              <span style="width:26px;height:26px;border-radius:50%;background:#16a34a;border:2px solid var(--surface);margin-left:-9px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">AM</span>
+              <span style="width:26px;height:26px;border-radius:50%;background:#d97706;border:2px solid var(--surface);margin-left:-9px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">+</span>
+            </div>
+            <span style="font-size:12.5px;font-weight:700">{{ connectedUsers }} conectados</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- stat cards -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px">
+        <sc-for list="{{ statCards }}" as="s" hint-placeholder-count="5">
+          <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);padding:16px;box-shadow:var(--shadow-sm)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="width:32px;height:32px;border-radius:9px;background:{{ s.iconBg }};color:{{ s.iconFg }};display:flex;align-items:center;justify-content:center;font-size:16px">{{ s.icon }}</span><span style="font-size:11px;font-weight:700;color:{{ s.deltaColor }}">{{ s.delta }}</span></div>
+            <div style="font-size:27px;font-weight:800;letter-spacing:-0.6px;line-height:1">{{ s.value }}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:5px;font-weight:600">{{ s.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- middle: charts + map -->
+      <div style="display:grid;grid-template-columns:1fr 1.45fr;gap:16px;margin-bottom:18px">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <!-- donut categorías -->
+          <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);padding:18px;box-shadow:var(--shadow-sm)">
+            <div style="font-weight:800;font-size:14.5px;margin-bottom:16px">Reportes por categoría</div>
+            <div style="display:flex;align-items:center;gap:20px">
+              <div style="width:120px;height:120px;border-radius:50%;background:{{ donutGradient }};flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative"><div style="width:72px;height:72px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-weight:800;font-size:20px;line-height:1">{{ totalReports }}</span><span style="font-size:9.5px;color:var(--muted);font-weight:600">reportes</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+                <sc-for list="{{ donutLegend }}" as="d" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:9px"><span style="width:10px;height:10px;border-radius:3px;background:{{ d.color }};flex-shrink:0"></span><span style="font-size:12.5px;font-weight:600;color:var(--fg-2);flex:1">{{ d.label }}</span><span style="font-size:12.5px;font-weight:800">{{ d.count }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <!-- barras estados -->
+          <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);padding:18px;box-shadow:var(--shadow-sm)">
+            <div style="font-weight:800;font-size:14.5px;margin-bottom:16px">Reportes por estado</div>
+            <div style="display:flex;flex-direction:column;gap:13px">
+              <sc-for list="{{ statusBars }}" as="b" hint-placeholder-count="5">
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12.5px;font-weight:700;color:var(--fg-2)">{{ b.label }}</span><span style="font-size:12.5px;font-weight:800;color:{{ b.color }}">{{ b.count }}</span></div><div style="height:8px;border-radius:5px;background:var(--surface-3);overflow:hidden"><div style="height:100%;width:{{ b.width }};border-radius:5px;background:{{ b.color }}"></div></div></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <!-- admin map -->
+        <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column;min-height:420px">
+          <div style="padding:15px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)"><span style="font-weight:800;font-size:14.5px">Mapa operativo</span><span style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">{{ totalReports }} marcadores activos</span></div>
+          <div id="ccc-admin-map" style="flex:1;min-height:360px"></div>
+        </div>
+      </div>
+
+      <!-- bottom: recent + AI -->
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
+        <!-- recent table -->
+        <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden">
+          <div style="padding:15px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)"><span style="font-weight:800;font-size:14.5px">Reportes recientes</span><span style="font-size:11.5px;font-weight:700;color:var(--accent)">Ver todos</span></div>
+          <sc-for list="{{ recent }}" as="r" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:13px;padding:12px 18px;border-bottom:1px solid var(--border-2)">
+              <span style="width:38px;height:38px;border-radius:11px;background:{{ r.colorSoft }};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">{{ r.emoji }}</span>
+              <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.catLabel }}</div><div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.place }} · {{ r.time }}</div></div>
+              <span style="font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:7px;background:{{ r.statusSoft }};color:{{ r.statusColor }};flex-shrink:0">{{ r.statusLabel }}</span>
+              <div style="display:flex;gap:6px;flex-shrink:0">
+                <button onClick="{{ r.onVerify }}" title="Marcar verificado" style="width:32px;height:32px;border-radius:9px;border:1px solid rgba(22,163,74,0.3);background:rgba(22,163,74,0.08);color:#15803d;cursor:pointer;font-size:14px">✓</button>
+                <button onClick="{{ r.onFalse }}" title="Marcar falso / spam" style="width:32px;height:32px;border-radius:9px;border:1px solid rgba(220,38,38,0.3);background:rgba(220,38,38,0.08);color:#b91c1c;cursor:pointer;font-size:14px">⚑</button>
+                <button onClick="{{ r.onDelete }}" title="Eliminar" style="width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);cursor:pointer;font-size:14px">🗑</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <!-- AI panel -->
+        <div style="border-radius:16px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden">
+          <div style="padding:15px 18px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border)"><span style="width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px">✦</span><span style="font-weight:800;font-size:14.5px">Asistente IA</span></div>
+          <div style="padding:8px 0">
+            <sc-for list="{{ aiItems }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border-2)">
+                <span style="width:34px;height:34px;border-radius:10px;background:{{ a.iconBg }};color:{{ a.iconFg }};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">{{ a.icon }}</span>
+                <div style="flex:1"><div style="font-weight:700;font-size:13px;color:var(--fg)">{{ a.title }}</div><div style="font-size:12px;color:var(--muted);line-height:1.4;margin-top:2px">{{ a.body }}</div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#e5484d&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;scenarioCity&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;La Guaira&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    theme: (this.props.defaultTheme || 'light'),
+    view: 'app',
+    showReport: false, showDetail: false, showSent: false, searchOpen: false,
+    reportStep: 0, selectedId: null, detailId: null,
+    filter: 'todos', layersOpen: false, legendOpen: false,
+    offline: false, queue: 0, base: 'streets', lastId: null, toast: null,
+    draft: { type: null, urgency: 'alta', desc: '', people: 1, name: '', phone: '', loc: 'gps', manual: '', media: [] },
+    reports: [
+      { id: 'CCC-2841', type: 'atrapada', lat: 10.5985, lng: -66.9305, place: 'Maiquetía, Calle Soublette', desc: 'Personas atrapadas bajo escombros en vivienda de dos pisos. Se escuchan voces pidiendo ayuda.', urgency: 'critica', status: 'sin_verificar', people: 4, mins: 7, confidence: 38, vc: { confirm: 2, attended: 0, incorrect: 0 }, name: 'Vecino', media: ['foto'] },
+      { id: 'CCC-2839', type: 'colapso', lat: 10.6092, lng: -66.8915, place: 'Macuto, Av. La Playa', desc: 'Edificio residencial de 4 pisos colapsado parcialmente. Acceso vehicular comprometido.', urgency: 'critica', status: 'en_proceso', people: 12, mins: 23, confidence: 82, vc: { confirm: 9, attended: 1, incorrect: 0 }, name: 'Bomberos La Guaira', media: ['foto', 'video'] },
+      { id: 'CCC-2836', type: 'bloqueo', lat: 10.6015, lng: -66.9910, place: 'Acceso Aeropuerto Maiquetía', desc: 'Vía principal bloqueada por deslizamiento de tierra. Tránsito desviado.', urgency: 'alta', status: 'verificado', people: 0, mins: 41, confidence: 91, vc: { confirm: 14, attended: 0, incorrect: 1 }, name: 'Protección Civil', media: [] },
+      { id: 'CCC-2834', type: 'peligro', lat: 10.6005, lng: -66.9650, place: 'Maiquetía Oeste, ladera', desc: 'Riesgo de nuevo deslave en la ladera. Zona evacuada preventivamente.', urgency: 'critica', status: 'verificado', people: 0, mins: 52, confidence: 88, vc: { confirm: 11, attended: 0, incorrect: 0 }, name: 'INAMEH', media: ['foto'] },
+      { id: 'CCC-2830', type: 'hospital', lat: 10.5962, lng: -66.9512, place: 'Hospital Periférico de Pariata', desc: 'Centro asistencial operativo recibiendo heridos. Requiere donantes de sangre O-.', urgency: 'alta', status: 'verificado', people: 0, mins: 64, confidence: 96, vc: { confirm: 22, attended: 0, incorrect: 0 }, name: 'Cruz Roja', media: [] },
+      { id: 'CCC-2828', type: 'refugio', lat: 10.6112, lng: -66.8522, place: 'Caraballeda, Escuela Bolivariana', desc: 'Refugio habilitado con capacidad para 200 personas. Disponen de camas y agua.', urgency: 'media', status: 'verificado', people: 0, mins: 78, confidence: 94, vc: { confirm: 18, attended: 0, incorrect: 0 }, name: 'Alcaldía Vargas', media: ['foto'] },
+      { id: 'CCC-2825', type: 'agua', lat: 10.5938, lng: -67.0305, place: 'Catia La Mar, Sector Las Tunas', desc: 'Comunidad sin acceso a agua potable desde el sismo. ~80 familias afectadas.', urgency: 'alta', status: 'sin_verificar', people: 0, mins: 96, confidence: 44, vc: { confirm: 3, attended: 0, incorrect: 0 }, name: 'Consejo comunal', media: [] },
+      { id: 'CCC-2820', type: 'alimentos', lat: 10.6131, lng: -66.8382, place: 'Tanaguarena, comedor comunitario', desc: 'Punto de acopio y distribución de alimentos. Aceptan donaciones de víveres no perecederos.', urgency: 'media', status: 'verificado', people: 0, mins: 112, confidence: 90, vc: { confirm: 16, attended: 0, incorrect: 0 }, name: 'Fundación Manos', media: ['foto'] },
+      { id: 'CCC-2816', type: 'medicinas', lat: 10.6118, lng: -66.8762, place: 'El Cojo, ambulatorio', desc: 'Necesitan insulina y medicamentos para hipertensión. Adultos mayores sin tratamiento.', urgency: 'alta', status: 'en_proceso', people: 0, mins: 134, confidence: 71, vc: { confirm: 7, attended: 1, incorrect: 0 }, name: 'Farmacia solidaria', media: [] },
+      { id: 'CCC-2811', type: 'electricidad', lat: 10.6101, lng: -66.9101, place: 'Punta de Mulatos', desc: 'Sector sin energía eléctrica. Postes caídos sobre la vía, riesgo de electrocución.', urgency: 'media', status: 'en_proceso', people: 0, mins: 158, confidence: 66, vc: { confirm: 6, attended: 1, incorrect: 0 }, name: 'Corpoelec reporta', media: [] },
+      { id: 'CCC-2807', type: 'internet', lat: 10.6041, lng: -66.9312, place: 'La Guaira, casco central', desc: 'Punto con conexión WiFi gratuita y carga de teléfonos para coordinación.', urgency: 'baja', status: 'verificado', people: 0, mins: 181, confidence: 87, vc: { confirm: 12, attended: 0, incorrect: 0 }, name: 'CANTV', media: [] },
+      { id: 'CCC-2802', type: 'atrapada', lat: 10.6024, lng: -66.9452, place: 'Las Tunitas, callejón 3', desc: 'Familia atrapada en planta baja por estructura inestable. Adultos mayores presentes.', urgency: 'alta', status: 'en_proceso', people: 3, mins: 205, confidence: 74, vc: { confirm: 8, attended: 1, incorrect: 0 }, name: 'Voluntario', media: ['audio'] },
+      { id: 'CCC-2798', type: 'ayuda', lat: 10.6049, lng: -66.9285, place: 'Plaza Vargas, La Guaira', desc: 'Centro de coordinación de voluntarios y entrega de insumos básicos.', urgency: 'baja', status: 'verificado', people: 0, mins: 232, confidence: 92, vc: { confirm: 19, attended: 0, incorrect: 0 }, name: 'Voluntariado CCC', media: ['foto'] },
+      { id: 'CCC-2790', type: 'bloqueo', lat: 10.6155, lng: -66.7455, place: 'Naiguatá, vía costera', desc: 'Carretera obstruida por rocas. Paso peatonal habilitado únicamente.', urgency: 'media', status: 'falso', people: 0, mins: 268, confidence: 18, vc: { confirm: 1, attended: 0, incorrect: 6 }, name: 'Anónimo', media: [] }
+    ]
+  };
+
+  CATS = {
+    atrapada:     { label: 'Persona atrapada',  emoji: '🆘', color: '#e5484d' },
+    colapso:      { label: 'Edificio colapsado',emoji: '🏚️', color: '#b45309' },
+    bloqueo:      { label: 'Calle bloqueada',   emoji: '🚧', color: '#e8950c' },
+    peligro:      { label: 'Zona peligrosa',    emoji: '⚠️', color: '#dc2626' },
+    ayuda:        { label: 'Centro de ayuda',   emoji: '🟢', color: '#16a34a' },
+    hospital:     { label: 'Hospital',          emoji: '🏥', color: '#2563eb' },
+    refugio:      { label: 'Refugio',           emoji: '⛺', color: '#0d9488' },
+    agua:         { label: 'Agua',              emoji: '💧', color: '#0ea5e9' },
+    alimentos:    { label: 'Alimentos',         emoji: '🍞', color: '#d97706' },
+    medicinas:    { label: 'Medicinas',         emoji: '💊', color: '#db2777' },
+    electricidad: { label: 'Electricidad',      emoji: '⚡', color: '#ca8a04' },
+    internet:     { label: 'Internet',          emoji: '📶', color: '#6366f1' }
+  };
+  STATUS = {
+    sin_verificar: { label: 'Sin verificar', color: '#8b94a3' },
+    verificado:    { label: 'Verificado',    color: '#16a34a' },
+    en_proceso:    { label: 'En proceso',    color: '#2563eb' },
+    resuelto:      { label: 'Resuelto',      color: '#0d9488' },
+    falso:         { label: 'Falso',         color: '#dc2626' }
+  };
+  URG = {
+    critica: { label: 'Crítica', color: '#dc2626', hint: 'Vida en peligro inmediato' },
+    alta:    { label: 'Alta',    color: '#ea580c', hint: 'Requiere atención pronta' },
+    media:   { label: 'Media',   color: '#d97706', hint: 'Importante, no inmediato' },
+    baja:    { label: 'Baja',    color: '#16a34a', hint: 'Informativo / recurso' }
+  };
+  STEPS = ['¿Qué ocurre?', 'Ubicación', 'Detalles', 'Urgencia', 'Revisar y enviar'];
+
+  THEMES = {
+    light: { '--bg':'#e9ebef','--surface':'#ffffff','--surface-2':'#f4f5f7','--surface-3':'#ebedf1','--fg':'#15171c','--fg-2':'#3d4350','--muted':'#727a89','--border':'rgba(17,20,28,0.09)','--border-2':'rgba(17,20,28,0.05)','--accent-soft':'rgba(229,72,77,0.10)','--shadow':'0 1px 2px rgba(16,20,30,0.06),0 10px 30px rgba(16,20,30,0.11)','--shadow-sm':'0 1px 2px rgba(16,20,30,0.09)','--glass':'rgba(255,255,255,0.74)' },
+    dark: { '--bg':'#0a0b0d','--surface':'#15171b','--surface-2':'#1b1e23','--surface-3':'#262a31','--fg':'#f1f3f5','--fg-2':'#c7ccd4','--muted':'#878e9a','--border':'rgba(255,255,255,0.10)','--border-2':'rgba(255,255,255,0.05)','--accent-soft':'rgba(255,93,98,0.16)','--shadow':'0 1px 2px rgba(0,0,0,0.5),0 12px 36px rgba(0,0,0,0.45)','--shadow-sm':'0 1px 2px rgba(0,0,0,0.5)','--glass':'rgba(20,22,26,0.74)' }
+  };
+
+  componentDidMount() {
+    this.applyTheme();
+    this._wait(() => window.L && document.getElementById('ccc-map'), () => { this.initAppMap(); setTimeout(() => this.appMap && this.appMap.invalidateSize(), 150); });
+  }
+  componentDidUpdate(pp, ps) {
+    if (ps.theme !== this.state.theme) {
+      this.applyTheme();
+      const url = this._tileUrl();
+      if (this.appTiles) this.appTiles.setUrl(url);
+      if (this.adminTiles) this.adminTiles.setUrl(url);
+    }
+    if (ps.base !== this.state.base) {
+      const url = this._tileUrl();
+      if (this.appTiles) this.appTiles.setUrl(url);
+      if (this.adminTiles) this.adminTiles.setUrl(url);
+    }
+    if (ps.filter !== this.state.filter || ps.reports !== this.state.reports) {
+      this.renderMarkers(this.appMap, this.appLayer);
+      this.renderMarkers(this.adminMap, this.adminLayer);
+    }
+    if (ps.view !== this.state.view) {
+      if (this.state.view === 'admin') this._wait(() => window.L, () => this.initAdminMap());
+      setTimeout(() => {
+        if (this.appMap) this.appMap.invalidateSize();
+        if (this.adminMap) this.adminMap.invalidateSize();
+      }, 140);
+    }
+    if (this.state.showReport && this.state.reportStep === 1 && !this.miniMap) {
+      this._wait(() => window.L && document.getElementById('ccc-mini'), () => this.initMini());
+    }
+    if (!this.state.showReport && this.miniMap) { this.miniMap.remove(); this.miniMap = null; }
+    if (ps.selectedId !== this.state.selectedId && this.state.selectedId && this.appMap) {
+      const r = this._byId(this.state.selectedId);
+      if (r) this.appMap.flyTo([r.lat, r.lng], 15, { duration: 0.6 });
+    }
+  }
+
+  _wait(cond, cb, n) { n = n || 0; if (cond()) return cb(); if (n > 80) return; setTimeout(() => this._wait(cond, cb, n + 1), 60); }
+  _byId(id) { return this.state.reports.find(r => r.id === id); }
+  applyTheme() {
+    const root = document.getElementById('ccc-root'); if (!root) return;
+    const vars = this.THEMES[this.state.theme];
+    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+    const acc = this.props.accentColor || '#e5484d';
+    root.style.setProperty('--accent', acc);
+  }
+  _tileUrl() {
+    if (this.state.base === 'sat') return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+    return this.state.theme === 'dark'
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  }
+  _icon(r) {
+    const c = this.CATS[r.type];
+    const ring = r.urgency === 'critica' ? `<div style="position:absolute;left:50%;top:13px;width:30px;height:30px;margin-left:-15px;border-radius:50%;background:${c.color};animation:ccpulse 1.8s ease-out infinite"></div>` : '';
+    const html = `<div style="position:relative;width:34px;height:46px">${ring}<div style="position:absolute;left:2px;top:0;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${c.color};border:2px solid #fff;box-shadow:0 3px 7px rgba(0,0,0,.4)"></div><div style="position:absolute;left:2px;top:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px">${c.emoji}</div></div>`;
+    return L.divIcon({ className: 'ccc-pin', html, iconSize: [34, 46], iconAnchor: [17, 40] });
+  }
+  _match(r, f) {
+    if (f === 'todos') return true;
+    const map = { atrapada: ['atrapada', 'colapso'], calles: ['bloqueo', 'peligro'], hospital: ['hospital'], refugio: ['refugio', 'ayuda'], agua: ['agua'], comida: ['alimentos'], medicinas: ['medicinas'] };
+    return (map[f] || [f]).includes(r.type);
+  }
+  initAppMap() {
+    const el = document.getElementById('ccc-map'); if (!el || this.appMap) return;
+    this.appMap = L.map(el, { zoomControl: false, attributionControl: false }).setView([10.606, -66.915], 13);
+    this.appTiles = L.tileLayer(this._tileUrl(), { maxZoom: 19 }).addTo(this.appMap);
+    this.appLayer = (window.L.markerClusterGroup ? L.markerClusterGroup({ maxClusterRadius: 44, showCoverageOnHover: false }) : L.layerGroup()).addTo(this.appMap);
+    this.renderMarkers(this.appMap, this.appLayer);
+  }
+  initAdminMap() {
+    const el = document.getElementById('ccc-admin-map'); if (!el || this.adminMap) return;
+    this.adminMap = L.map(el, { zoomControl: true, attributionControl: false }).setView([10.606, -66.91], 12);
+    this.adminTiles = L.tileLayer(this._tileUrl(), { maxZoom: 19 }).addTo(this.adminMap);
+    this.adminLayer = (window.L.markerClusterGroup ? L.markerClusterGroup({ maxClusterRadius: 44, showCoverageOnHover: false }) : L.layerGroup()).addTo(this.adminMap);
+    this.renderMarkers(this.adminMap, this.adminLayer);
+    setTimeout(() => this.adminMap && this.adminMap.invalidateSize(), 120);
+  }
+  initMini() {
+    const el = document.getElementById('ccc-mini'); if (!el || this.miniMap) return;
+    this.miniMap = L.map(el, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([10.606, -66.915], 14);
+    L.tileLayer(this._tileUrl(), { maxZoom: 19 }).addTo(this.miniMap);
+    setTimeout(() => this.miniMap && this.miniMap.invalidateSize(), 100);
+  }
+  renderMarkers(map, layer) {
+    if (!map || !layer) return;
+    layer.clearLayers();
+    this.state.reports.forEach(r => {
+      if (!this._match(r, this.state.filter)) return;
+      const m = L.marker([r.lat, r.lng], { icon: this._icon(r) });
+      m.on('click', () => this.setState({ selectedId: r.id }));
+      layer.addLayer(m);
+    });
+  }
+
+  _toast(msg) { this.setState({ toast: msg }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: null }), 2400); }
+
+  // ── report flow ──
+  openReport = () => this.setState({ showReport: true, reportStep: 0, selectedId: null, draft: { type: null, urgency: 'alta', desc: '', people: 1, name: '', phone: '', loc: 'gps', manual: '', media: [] } });
+  closeReport = () => this.setState({ showReport: false });
+  reportBack = () => { if (this.state.reportStep === 0) this.setState({ showReport: false }); else this.setState(s => ({ reportStep: s.reportStep - 1 })); };
+  reportNext = () => {
+    const s = this.state;
+    if (s.reportStep === 0 && !s.draft.type) { this._toast('Selecciona un tipo de incidente'); return; }
+    if (s.reportStep < 4) this.setState({ reportStep: s.reportStep + 1 });
+    else this.submitReport();
+  };
+  pickType = (id) => this.setState(s => ({ draft: { ...s.draft, type: id } }));
+  setUrgency = (id) => this.setState(s => ({ draft: { ...s.draft, urgency: id } }));
+  setLoc = (v) => this.setState(s => ({ draft: { ...s.draft, loc: v } }));
+  onDesc = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, desc: v } })); };
+  onManual = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, manual: v } })); };
+  onName = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, name: v } })); };
+  onPhone = (e) => { const v = e.target.value; this.setState(s => ({ draft: { ...s.draft, phone: v } })); };
+  incPeople = () => this.setState(s => ({ draft: { ...s.draft, people: Math.min(999, s.draft.people + 1) } }));
+  decPeople = () => this.setState(s => ({ draft: { ...s.draft, people: Math.max(0, s.draft.people - 1) } }));
+  addMedia = (t) => this.setState(s => s.draft.media.includes(t) ? {} : ({ draft: { ...s.draft, media: [...s.draft.media, t] } }));
+  removeMedia = (t) => this.setState(s => ({ draft: { ...s.draft, media: s.draft.media.filter(x => x !== t) } }));
+  submitReport = () => {
+    const d = this.state.draft;
+    const id = 'CCC-' + (2842 + this.state.queue + this.state.reports.length - 14);
+    const r = { id, type: d.type || 'ayuda', lat: 10.606 + (Math.random() - 0.5) * 0.05, lng: -66.915 + (Math.random() - 0.5) * 0.07, place: d.loc === 'manual' && d.manual ? d.manual : 'Tu ubicación · ' + (this.props.scenarioCity || 'La Guaira'), desc: d.desc || '(Sin descripción)', urgency: d.urgency, status: 'sin_verificar', people: d.people, mins: 0, confidence: 20, vc: { confirm: 0, attended: 0, incorrect: 0 }, name: d.name || 'Tú', media: d.media };
+    if (this.state.offline) {
+      this.setState(s => ({ queue: s.queue + 1, showReport: false, showSent: true, lastId: id }));
+    } else {
+      this.setState(s => ({ reports: [r, ...s.reports], showReport: false, showSent: true, lastId: id }));
+    }
+  };
+  sentToMap = () => this.setState({ showSent: false });
+  sentAnother = () => this.openReport();
+
+  // ── detail / verify ──
+  openDetail = (id) => this.setState({ showDetail: true, detailId: id, selectedId: null });
+  closeDetail = () => this.setState({ showDetail: false });
+  verify = (id, kind) => {
+    this.setState(s => ({
+      reports: s.reports.map(r => {
+        if (r.id !== id) return r;
+        const vc = { ...r.vc }; vc[kind] = (vc[kind] || 0) + 1;
+        let conf = r.confidence, status = r.status;
+        if (kind === 'confirm') conf = Math.min(99, conf + 6);
+        if (kind === 'attended') { conf = Math.min(99, conf + 3); status = 'en_proceso'; }
+        if (kind === 'incorrect') conf = Math.max(2, conf - 12);
+        return { ...r, vc, confidence: conf, status };
+      })
+    }));
+    const msg = { confirm: 'Confirmación registrada · gracias', attended: 'Marcado como atendido', incorrect: 'Reporte marcado como dudoso' };
+    this._toast(msg[kind]);
+  };
+  modAction = (id, action) => {
+    if (action === 'delete') { this.setState(s => ({ reports: s.reports.filter(r => r.id !== id) })); this._toast('Reporte eliminado'); return; }
+    this.setState(s => ({ reports: s.reports.map(r => r.id === id ? { ...r, status: action === 'verify' ? 'verificado' : 'falso', confidence: action === 'verify' ? Math.max(r.confidence, 85) : 12 } : r) }));
+    this._toast(action === 'verify' ? 'Marcado como verificado' : 'Marcado como falso');
+  };
+
+  // ── ui toggles ──
+  toggleTheme = () => this.setState(s => ({ theme: s.theme === 'light' ? 'dark' : 'light' }));
+  toggleOffline = () => { const off = !this.state.offline; this.setState({ offline: off }); this._toast(off ? 'Modo offline · los reportes se guardarán localmente' : (this.state.queue ? this.state.queue + ' reporte(s) sincronizados' : 'Conexión restablecida')); if (!off && this.state.queue) this.setState({ queue: 0 }); };
+  toggleLayers = () => this.setState(s => ({ layersOpen: !s.layersOpen, legendOpen: false }));
+  toggleLegend = () => this.setState(s => ({ legendOpen: !s.legendOpen, layersOpen: false }));
+  setBase = (b) => this.setState({ base: b });
+  setFilter = (f) => this.setState({ filter: f, selectedId: null });
+  openSearch = () => this.setState({ searchOpen: true });
+  closeSearch = () => this.setState({ searchOpen: false });
+  closeSheet = () => this.setState({ selectedId: null });
+  locate = () => { if (this.appMap) this.appMap.flyTo([10.606, -66.915], 14, { duration: 0.7 }); this._toast('Centrando en tu ubicación'); };
+  goApp = () => this.setState({ view: 'app' });
+  goAdmin = () => this.setState({ view: 'admin' });
+
+  _confColor(c) { return c >= 70 ? '#16a34a' : c >= 40 ? '#d97706' : '#dc2626'; }
+  _soft(hex, a) { return 'color-mix(in srgb, ' + hex + ' ' + a + '%, transparent)'; }
+  _ago(m) { if (m <= 0) return 'ahora'; if (m < 60) return 'hace ' + m + ' min'; const h = Math.round(m / 60); return 'hace ' + h + ' h'; }
+  _disp(r) {
+    const c = this.CATS[r.type], st = this.STATUS[r.status], ur = this.URG[r.urgency];
+    return { ...r, catLabel: c.label, emoji: c.emoji, color: c.color, colorSoft: this._soft(c.color, 14),
+      statusLabel: st.label, statusColor: st.color, statusSoft: this._soft(st.color, 14),
+      urgLabel: ur.label, urgColor: ur.color, urgSoft: this._soft(ur.color, 14),
+      confColor: this._confColor(r.confidence), time: this._ago(r.mins) };
+  }
+
+  renderVals() {
+    const s = this.state, dark = s.theme === 'dark';
+    const acc = this.props.accentColor || '#e5484d';
+    const city = this.props.scenarioCity || 'La Guaira';
+    const onTab = (active) => ({ bg: active ? 'var(--surface)' : 'transparent', fg: active ? 'var(--fg)' : 'var(--muted)', shadow: active ? 'var(--shadow-sm)' : 'none' });
+    const at = onTab(s.view === 'app'), ad = onTab(s.view === 'admin');
+
+    // chips
+    const chipDefs = [
+      { id: 'todos', label: 'Todos', emoji: '◎' }, { id: 'atrapada', label: 'Atrapados', emoji: '🆘' },
+      { id: 'calles', label: 'Vías', emoji: '🚧' }, { id: 'hospital', label: 'Hospitales', emoji: '🏥' },
+      { id: 'refugio', label: 'Refugios', emoji: '⛺' }, { id: 'agua', label: 'Agua', emoji: '💧' },
+      { id: 'comida', label: 'Comida', emoji: '🍞' }, { id: 'medicinas', label: 'Medicinas', emoji: '💊' }
+    ];
+    const chips = chipDefs.map(c => {
+      const active = s.filter === c.id;
+      return { ...c, onTap: () => this.setFilter(c.id), bg: active ? 'var(--accent)' : 'var(--glass)', fg: active ? '#fff' : 'var(--fg)', border: active ? acc : 'var(--border)', shadow: 'var(--shadow-sm)' };
+    });
+
+    // type grid
+    const typeGrid = Object.entries(this.CATS).map(([id, c]) => {
+      const sel = s.draft.type === id;
+      return { id, label: c.label, emoji: c.emoji, onTap: () => this.pickType(id), bg: sel ? 'var(--accent-soft)' : 'var(--surface-2)', border: sel ? acc : 'var(--border)', iconBg: this._soft(c.color, 16) };
+    });
+
+    // urgency grid
+    const urgGrid = Object.entries(this.URG).map(([id, u]) => {
+      const sel = s.draft.urgency === id;
+      return { id, label: u.label, hint: u.hint, color: u.color, halo: this._soft(u.color, 20), onTap: () => this.setUrgency(id), bg: sel ? this._soft(u.color, 9) : 'var(--surface-2)', border: sel ? u.color : 'var(--border)', check: sel ? u.color : 'transparent', checkMark: sel ? '✓' : '' };
+    });
+
+    // legend
+    const legendItems = Object.values(this.CATS).map(c => ({ label: c.label, emoji: c.emoji, color: c.color }));
+
+    // layer toggles (decorative)
+    const lt = (on) => ({ track: on ? acc : 'var(--surface-3)', knob: on ? '18px' : '2px' });
+    const layerToggles = [
+      { id: 'inc', emoji: '🆘', label: 'Incidentes', ...lt(true), onTap: () => {} },
+      { id: 'res', emoji: '🏥', label: 'Recursos', ...lt(true), onTap: () => {} },
+      { id: 'vol', emoji: '🦺', label: 'Voluntarios', ...lt(false), onTap: () => {} }
+    ];
+
+    // media chips
+    const mediaLabels = { foto: '📷 Foto', video: '🎥 Video', audio: '🎙️ Audio' };
+    const mediaChips = s.draft.media.map(m => ({ label: mediaLabels[m], onRemove: () => this.removeMedia(m) }));
+
+    // selected / detail
+    const selR = s.selectedId ? this._byId(s.selectedId) : null;
+    const sel = selR ? { ...this._disp(selR), onDetail: () => this.openDetail(selR.id) } : {};
+    const detR = s.detailId ? this._byId(s.detailId) : null;
+    let det = {};
+    if (detR) {
+      const d = this._disp(detR);
+      const aiMap = {
+        atrapada: 'Emergencia de rescate con vida en riesgo. Se recomienda despacho inmediato de equipo USAR y verificación en sitio.',
+        colapso: 'Colapso estructural con múltiples afectados. Coordinar maquinaria pesada y perímetro de seguridad.',
+        bloqueo: 'Obstrucción de vía que limita el acceso de servicios de emergencia. Sugerir ruta alterna.',
+        peligro: 'Zona de riesgo geológico activo. Mantener evacuación y monitoreo continuo.',
+        hospital: 'Centro asistencial operativo. Priorizar reabastecimiento de insumos críticos.',
+        refugio: 'Punto de albergue verificado con capacidad disponible. Difundir ubicación.',
+        agua: 'Necesidad de agua potable para población vulnerable. Coordinar cisterna.',
+        alimentos: 'Punto de distribución de alimentos. Canalizar donaciones entrantes.',
+        medicinas: 'Demanda de medicamentos crónicos. Vincular con farmacia solidaria.',
+        electricidad: 'Falla eléctrica con riesgo asociado. Reportado a la empresa de servicio.',
+        internet: 'Punto de conectividad útil para coordinación ciudadana.',
+        ayuda: 'Centro de coordinación de voluntariado activo.'
+      };
+      det = { ...d, aiSummary: aiMap[detR.type] || 'Reporte ciudadano pendiente de clasificación.', confWidth: detR.confidence + '%', vConfirm: detR.vc.confirm, vAttended: detR.vc.attended, vIncorrect: detR.vc.incorrect, hasMedia: detR.media.length > 0, mediaCount: detR.media.length, reporter: detR.name, onConfirm: () => this.verify(detR.id, 'confirm'), onAttended: () => this.verify(detR.id, 'attended'), onIncorrect: () => this.verify(detR.id, 'incorrect') };
+    }
+
+    // report review (step 4)
+    const dc = s.draft.type ? this.CATS[s.draft.type] : null;
+    const du = this.URG[s.draft.urgency];
+    const aiPrioMap = { critica: 'P1 · Crítica', alta: 'P2 · Alta', media: 'P3 · Media', baja: 'P4 · Baja' };
+    const aiClassMap = dc ? dc.label : '';
+
+    // search list
+    const searchList = s.reports.slice(0, 9).map(r => ({ ...this._disp(r), onTap: () => this.setState({ searchOpen: false, selectedId: r.id }) }));
+
+    // ── admin computed ──
+    const total = s.reports.length;
+    const byStatus = {}; Object.keys(this.STATUS).forEach(k => byStatus[k] = 0);
+    s.reports.forEach(r => byStatus[r.status]++);
+    const critical = s.reports.filter(r => r.urgency === 'critica').length;
+    const statCards = [
+      { label: 'Reportes totales', value: total, delta: '+8 hoy', deltaColor: '#16a34a', icon: '📋', iconBg: this._soft(acc, 14), iconFg: acc },
+      { label: 'Sin verificar', value: byStatus.sin_verificar, delta: 'pendientes', deltaColor: 'var(--muted)', icon: '⏳', iconBg: 'rgba(139,148,163,0.16)', iconFg: '#8b94a3' },
+      { label: 'En proceso', value: byStatus.en_proceso, delta: 'activos', deltaColor: '#2563eb', icon: '🚑', iconBg: 'rgba(37,99,235,0.14)', iconFg: '#2563eb' },
+      { label: 'Resueltos / verif.', value: byStatus.verificado + byStatus.resuelto, delta: '+5', deltaColor: '#16a34a', icon: '✓', iconBg: 'rgba(22,163,74,0.14)', iconFg: '#16a34a' },
+      { label: 'Urgencia crítica', value: critical, delta: 'atención', deltaColor: '#dc2626', icon: '🚨', iconBg: 'rgba(220,38,38,0.14)', iconFg: '#dc2626' }
+    ];
+
+    // donut by category
+    const catCount = {}; s.reports.forEach(r => catCount[r.type] = (catCount[r.type] || 0) + 1);
+    const topCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    let acc2 = 0; const segs = []; const donutLegend = [];
+    topCats.forEach(([id, n]) => {
+      const c = this.CATS[id]; const pct = (n / total) * 100;
+      segs.push(c.color + ' ' + acc2.toFixed(1) + '% ' + (acc2 + pct).toFixed(1) + '%');
+      acc2 += pct; donutLegend.push({ label: c.label, count: n, color: c.color });
+    });
+    segs.push('var(--surface-3) ' + acc2.toFixed(1) + '% 100%');
+    const donutGradient = 'conic-gradient(' + segs.join(',') + ')';
+
+    const maxStatus = Math.max(1, ...Object.values(byStatus));
+    const statusBars = Object.entries(this.STATUS).map(([id, st]) => ({ label: st.label, color: st.color, count: byStatus[id], width: (byStatus[id] / maxStatus * 100) + '%' }));
+
+    const recent = [...s.reports].sort((a, b) => a.mins - b.mins).slice(0, 6).map(r => ({ ...this._disp(r), onVerify: () => this.modAction(r.id, 'verify'), onFalse: () => this.modAction(r.id, 'false'), onDelete: () => this.modAction(r.id, 'delete') }));
+
+    const aiItems = [
+      { icon: '🔀', iconBg: 'rgba(99,102,241,0.14)', iconFg: '#6366f1', title: '3 reportes duplicados agrupados', body: 'Incidentes de "colapso" en Macuto fusionados en un solo caso para evitar redundancia.' },
+      { icon: '🛡️', iconBg: 'rgba(220,38,38,0.14)', iconFg: '#dc2626', title: '2 mensajes de spam filtrados', body: 'Texto repetitivo y enlaces sospechosos bloqueados automáticamente.' },
+      { icon: '🏷️', iconBg: 'rgba(22,163,74,0.14)', iconFg: '#16a34a', title: '12 reportes clasificados', body: 'Categoría y prioridad asignadas por IA con 94% de confianza promedio.' },
+      { icon: '📝', iconBg: this._soft(acc, 14), iconFg: acc, title: 'Resumen de situación generado', body: 'Sismo M6.2: 4 personas atrapadas, 3 refugios activos, sector Catia La Mar sin agua.' }
+    ];
+
+    const navDefs = [
+      { id: 'resumen', icon: '📊', label: 'Resumen' }, { id: 'mapa', icon: '🗺️', label: 'Mapa operativo' },
+      { id: 'reportes', icon: '📋', label: 'Reportes', badge: String(byStatus.sin_verificar) },
+      { id: 'moderacion', icon: '🛡️', label: 'Moderación' }, { id: 'ia', icon: '✦', label: 'Asistente IA' },
+      { id: 'usuarios', icon: '👥', label: 'Usuarios' }
+    ];
+    const navItems = navDefs.map((n, i) => ({ ...n, onTap: () => {}, bg: i === 0 ? 'var(--accent-soft)' : 'transparent', fg: i === 0 ? acc : 'var(--fg-2)', hasBadge: !!n.badge }));
+
+    return {
+      cityLabel: city, isDark: dark, isApp: s.view === 'app', isAdmin: s.view === 'admin',
+      themeIcon: dark ? '☀️' : '🌙',
+      appTabBg: at.bg, appTabFg: at.fg, appTabShadow: at.shadow,
+      adminTabBg: ad.bg, adminTabFg: ad.fg, adminTabShadow: ad.shadow,
+      goApp: this.goApp, goAdmin: this.goAdmin, toggleTheme: this.toggleTheme,
+
+      // map controls
+      openSearch: this.openSearch, toggleLayers: this.toggleLayers, toggleLegend: this.toggleLegend,
+      locate: this.locate, openReport: this.openReport, toggleOffline: this.toggleOffline,
+      chips, legendItems, layerToggles, layersOpen: s.layersOpen, legendOpen: s.legendOpen,
+      connColor: s.offline ? '#d97706' : '#16a34a', connHalo: s.offline ? 'rgba(217,119,6,0.18)' : 'rgba(22,163,74,0.18)',
+      connLabel: s.offline ? ('OFFLINE · ' + s.queue + ' en cola') : 'EN LÍNEA',
+      baseStreetsBg: s.base === 'streets' ? 'var(--accent-soft)' : 'var(--surface-2)', baseStreetsFg: s.base === 'streets' ? acc : 'var(--fg-2)', baseStreetsBorder: s.base === 'streets' ? acc : 'var(--border)',
+      baseSatBg: s.base === 'sat' ? 'var(--accent-soft)' : 'var(--surface-2)', baseSatFg: s.base === 'sat' ? acc : 'var(--fg-2)', baseSatBorder: s.base === 'sat' ? acc : 'var(--border)',
+      setBaseStreets: () => this.setBase('streets'), setBaseSat: () => this.setBase('sat'),
+
+      // sheet / search
+      hasSelected: !!selR, sel, closeSheet: this.closeSheet,
+      searchOpen: s.searchOpen, closeSearch: this.closeSearch, searchList,
+
+      // report flow
+      showReport: s.showReport, closeReport: this.closeReport, reportBack: this.reportBack, reportNext: this.reportNext,
+      stepNum: s.reportStep + 1, stepTitle: this.STEPS[s.reportStep],
+      stepDots: this.STEPS.map((_, i) => ({ bg: i <= s.reportStep ? acc : 'var(--surface-3)' })),
+      rs0: s.reportStep === 0, rs1: s.reportStep === 1, rs2: s.reportStep === 2, rs3: s.reportStep === 3, rs4: s.reportStep === 4,
+      typeGrid, urgGrid, draft: s.draft,
+      draftManual: s.draft.loc === 'manual',
+      gpsCoords: '10.6062, -66.9151',
+      setGps: () => this.setLoc('gps'), setManual: () => this.setLoc('manual'),
+      gpsBg: s.draft.loc === 'gps' ? 'var(--accent-soft)' : 'var(--surface-2)', gpsBorder: s.draft.loc === 'gps' ? acc : 'var(--border)', gpsRing: s.draft.loc === 'gps' ? acc : 'var(--border)', gpsCheck: s.draft.loc === 'gps' ? '●' : '',
+      manBg: s.draft.loc === 'manual' ? 'var(--accent-soft)' : 'var(--surface-2)', manBorder: s.draft.loc === 'manual' ? acc : 'var(--border)', manRing: s.draft.loc === 'manual' ? acc : 'var(--border)', manCheck: s.draft.loc === 'manual' ? '●' : '',
+      onManual: this.onManual, onDesc: this.onDesc, onName: this.onName, onPhone: this.onPhone,
+      incPeople: this.incPeople, decPeople: this.decPeople,
+      addPhoto: () => this.addMedia('foto'), addVideo: () => this.addMedia('video'), addAudio: () => this.addMedia('audio'),
+      hasMedia: s.draft.media.length > 0, mediaChips,
+      aiClass: aiClassMap, aiPrio: aiPrioMap[s.draft.urgency], aiPrioColor: du.color,
+      aiSummary: (s.draft.desc ? (s.draft.desc.slice(0, 90) + (s.draft.desc.length > 90 ? '…' : '')) : 'Reporte ciudadano sin descripción detallada.'),
+      revEmoji: dc ? dc.emoji : '📍', revLabel: dc ? dc.label : 'Incidente', revColorSoft: dc ? this._soft(dc.color, 14) : 'var(--surface-3)',
+      revUrg: du.label, revPeople: s.draft.people, revDesc: s.draft.desc || '(Sin descripción)',
+      revPlace: s.draft.loc === 'manual' && s.draft.manual ? s.draft.manual : 'Tu ubicación GPS · ' + city,
+      nextLabel: s.reportStep < 4 ? 'Continuar' : (s.offline ? 'Guardar offline' : 'Enviar reporte'),
+      nextBg: acc, nextFg: '#fff', nextShadow: '0 6px 16px var(--accent-soft)', nextOpacity: 1,
+
+      // sent
+      showSent: s.showSent, sentToMap: this.sentToMap, sentAnother: this.sentAnother,
+      sentIcon: s.offline ? '📥' : '✓', sentRingBg: s.offline ? 'rgba(217,119,6,0.14)' : 'rgba(22,163,74,0.14)',
+      sentTitle: s.offline ? 'Guardado sin conexión' : 'Reporte enviado',
+      sentBody: s.offline ? 'Tu reporte se guardó en este dispositivo y se sincronizará automáticamente al recuperar la conexión.' : 'Gracias por colaborar. Tu reporte ya aparece en el mapa y será verificado por la comunidad.',
+      sentId: 'Folio ' + (s.lastId || 'CCC-0000'),
+
+      // detail
+      showDetail: s.showDetail, det, closeDetail: this.closeDetail,
+
+      // admin
+      connectedUsers: 247, totalReports: total, statCards,
+      donutGradient, donutLegend, statusBars, recent, aiItems, navItems,
+
+      // toast
+      hasToast: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
