@@ -250,6 +250,7 @@ export type Draft = {
   loc: "gps" | "manual" | "referencia";
   manual: string;
   reference: string;
+  manualCoords: { lat: number; lng: number } | null;
   media: MediaItem[];
   extra: Record<string, string>;
 };
@@ -263,6 +264,7 @@ export function freshDraft(): Draft {
     name: "",
     phone: "",
     loc: "gps",
+    manualCoords: null,
     manual: "",
     reference: "",
     media: [],

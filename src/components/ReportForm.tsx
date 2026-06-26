@@ -30,6 +30,7 @@ const HELP_PRIORITY = Math.min(...HELP_TYPES.map((t) => REPORT_PRIORITY[t]));
 
 type TypeCard = { key: string; emoji: string; label: string; priority: number; onPick: () => void; isActive: (t: ReportType | null) => boolean };
 import { uploadPhoto } from "@/lib/reports";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const STEPS = ["¿Qué ocurre?", "Ubicación", "Detalles", "Urgencia", "Revisar y enviar"];
 
@@ -467,12 +468,11 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
             </span>
           </button>
           {o.id === "manual" && draft.loc === "manual" && (
-            <input
+            <AddressAutocomplete
               value={draft.manual}
-              onChange={(e) => setDraft((d) => ({ ...d, manual: e.target.value }))}
+              onChange={(v) => setDraft((d) => ({ ...d, manual: v, manualCoords: null }))}
+              onPick={(s) => setDraft((d) => ({ ...d, manual: s.label, manualCoords: { lat: s.lat, lng: s.lng } }))}
               placeholder="Ej. Calle Real de Macuto, frente a la plaza"
-              className="mt-2 h-12 w-full rounded-xl border px-3.5 text-sm outline-none"
-              style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
             />
           )}
           {o.id === "referencia" && draft.loc === "referencia" && (

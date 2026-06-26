@@ -62,10 +62,11 @@ function placeFor(d: Draft, scenarioCity: string): string {
 }
 
 export async function submitReport(d: Draft, scenarioCity: string) {
+  const coords = d.loc === "manual" && d.manualCoords ? d.manualCoords : null;
   const payload = {
     type: d.type || "ayuda",
-    lat: 10.606 + (Math.random() - 0.5) * 0.05,
-    lng: -66.915 + (Math.random() - 0.5) * 0.07,
+    lat: coords?.lat ?? 10.606 + (Math.random() - 0.5) * 0.05,
+    lng: coords?.lng ?? -66.915 + (Math.random() - 0.5) * 0.07,
     place: placeFor(d, scenarioCity),
     description: d.desc || "(Sin descripción)",
     urgency: d.urgency,

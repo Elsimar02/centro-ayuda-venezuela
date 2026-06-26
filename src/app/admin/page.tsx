@@ -20,8 +20,26 @@ const NAV = [
   { id: "reportes", icon: "📋", label: "Reportes" },
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
+  { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
   { id: "ia", icon: "✦", label: "Asistente IA" },
   { id: "usuarios", icon: "👥", label: "Usuarios" },
+] as const;
+
+const COMM_GROUPS = [
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    icon: "🟢",
+    desc: "Coordinación en tiempo real entre voluntarios y reporteros.",
+    url: "https://chat.whatsapp.com/Kqqyyuq5vfmD5Aq879D4aQ?s=cl&p=i&mlu=0",
+  },
+  {
+    id: "telegram",
+    name: "Telegram",
+    icon: "🔵",
+    desc: "Canal de difusión y respaldo del grupo de WhatsApp.",
+    url: "https://t.me/+Psx3v3u6WS1mODZh",
+  },
 ] as const;
 
 type Section = (typeof NAV)[number]["id"];
@@ -202,6 +220,27 @@ export default function AdminPage() {
           )}
 
           {section === "moderacion" && (
+            <div className="flex flex-col gap-4">
+              <a
+                href="mailto:Centrocooperativovenezuela@gmail.com?subject=Reporte%20de%20error%20o%20contacto%20con%20moderaci%C3%B3n"
+                className="flex items-center gap-3 rounded-2xl border p-4"
+                style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+              >
+                <span className="text-2xl">✉️</span>
+                <span className="flex-1">
+                  <span className="block text-sm font-extrabold">¿Encontraste un error o necesitás contactar a un moderador?</span>
+                  <span className="block text-xs" style={{ color: "var(--muted)" }}>
+                    Escribinos a Centrocooperativovenezuela@gmail.com
+                  </span>
+                </span>
+                <span
+                  className="inline-flex h-9 flex-shrink-0 items-center rounded-lg px-3.5 text-xs font-bold text-white"
+                  style={{ background: "var(--accent)" }}
+                >
+                  Enviar correo
+                </span>
+              </a>
+
             <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
               <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
                 <span className="text-sm font-extrabold">Pendientes de verificar</span>
@@ -221,13 +260,55 @@ export default function AdminPage() {
                 <div className="p-10 text-center text-sm" style={{ color: "var(--muted)" }}>No hay reportes pendientes de moderación. 🎉</div>
               )}
             </div>
+            </div>
           )}
 
-          {(section === "mapa" || section === "ia" || section === "usuarios") && (
+          {section === "mapa" && (
+            <div
+              className="overflow-hidden rounded-2xl border"
+              style={{ borderColor: "var(--border)", background: "var(--surface)", height: "calc(100vh - 160px)" }}
+            >
+              <ReportMap
+                reports={reports}
+                theme={theme}
+                base="streets"
+                center={[10.606, -66.91]}
+                flyTarget={null}
+                onSelect={() => {}}
+              />
+            </div>
+          )}
+
+          {section === "grupos" && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {COMM_GROUPS.map((g) => (
+                <a
+                  key={g.id}
+                  href={g.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col gap-3 rounded-2xl border p-5"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{g.icon}</span>
+                    <span className="text-base font-extrabold">{g.name}</span>
+                  </div>
+                  <p className="text-sm" style={{ color: "var(--fg-2)" }}>{g.desc}</p>
+                  <span
+                    className="mt-1 inline-flex h-10 items-center justify-center rounded-xl text-sm font-bold text-white"
+                    style={{ background: "var(--accent)" }}
+                  >
+                    Unirse al grupo
+                  </span>
+                </a>
+              ))}
+            </div>
+          )}
+
+          {(section === "ia" || section === "usuarios") && (
             <div className="rounded-2xl border p-10 text-center text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--muted)" }}>
-              {section === "mapa"
-                ? 'El mapa operativo se muestra en la sección "Resumen" — esta vista dedicada está en construcción.'
-                : "Esta sección todavía no está implementada."}
+              Esta sección todavía no está implementada.
             </div>
           )}
         </main>
