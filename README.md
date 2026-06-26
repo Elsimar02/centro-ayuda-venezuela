@@ -1,6 +1,6 @@
 # Centro de Coordinación Ciudadana
 
-App de respuesta a emergencias para La Guaira, Venezuela: mapa interactivo de reportes (personas, rescates, salud, refugios, mascotas, etc.) y panel de administración para verificación/moderación.
+App de respuesta a emergencias tras los terremotos de junio 2026 en Venezuela: mapa interactivo de reportes (personas, rescates, salud, refugios, centros de acopio, mascotas, etc.) en todo el territorio nacional, y panel de administración para verificación/moderación.
 
 ## Stack
 

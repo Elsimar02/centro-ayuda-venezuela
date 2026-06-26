@@ -10,8 +10,6 @@ import dynamic from "next/dynamic";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
 
-const SCENARIO_CITY = "La Guaira";
-
 export function CitizenMapView({ onClose }: { onClose: () => void }) {
   const { reports, loading, error, submit, verify, flushQueue, queueCount } = useReports();
   const { theme, toggleTheme } = useTheme();
@@ -45,7 +43,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
           <div>
             <div className="text-sm font-extrabold leading-tight">Centro de Coordinación</div>
             <div className="hidden text-xs sm:block" style={{ color: "var(--muted)" }}>
-              {SCENARIO_CITY} · respuesta a emergencias
+              Venezuela · respuesta a emergencias
             </div>
           </div>
         </div>
@@ -145,9 +143,8 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
 
       {showReport && (
         <ReportForm
-          scenarioCity={SCENARIO_CITY}
           onClose={() => setShowReport(false)}
-          onSubmit={(draft) => submit(draft, SCENARIO_CITY, offline)}
+          onSubmit={(draft) => submit(draft, offline)}
         />
       )}
     </div>

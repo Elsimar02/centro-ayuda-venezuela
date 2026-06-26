@@ -57,26 +57,32 @@ export async function fetchReports(): Promise<Report[]> {
   return (data as ReportRow[]).map(fromRow);
 }
 
-function placeFor(d: Draft, scenarioCity: string): string {
+function placeFor(d: Draft): string {
   if (d.loc === "manual" && d.manual) return d.manual;
   if (d.loc === "referencia" && d.reference) {
     return d.referenceArea ? `${d.reference} (radio aprox. ${Math.round(d.referenceArea.radius)} m)` : d.reference;
   }
-  return "Tu ubicación GPS · " + scenarioCity;
+  if (d.loc === "gps" && d.gpsCoords) {
+    return "Tu ubicación GPS · " + (d.gpsPlace || `${d.gpsCoords.lat.toFixed(4)}, ${d.gpsCoords.lng.toFixed(4)}`);
+  }
+  return "Ubicación no especificada";
 }
 
-export async function submitReport(d: Draft, scenarioCity: string) {
+export async function submitReport(d: Draft) {
   const coords =
     d.loc === "manual" && d.manualCoords
       ? d.manualCoords
       : d.loc === "referencia" && d.referenceArea
         ? d.referenceArea
-        : null;
+        : d.loc === "gps" && d.gpsCoords
+          ? d.gpsCoords
+          : null;
+  if (!coords) throw new Error("No se pudo determinar la ubicación del reporte.");
   const payload = {
     type: d.type || "ayuda",
-    lat: coords?.lat ?? 10.606 + (Math.random() - 0.5) * 0.05,
-    lng: coords?.lng ?? -66.915 + (Math.random() - 0.5) * 0.07,
-    place: placeFor(d, scenarioCity),
+    lat: coords.lat,
+    lng: coords.lng,
+    place: placeFor(d),
     description: d.desc || "(Sin descripción)",
     urgency: d.urgency,
     status: "sin_verificar",

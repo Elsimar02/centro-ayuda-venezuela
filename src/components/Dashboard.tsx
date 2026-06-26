@@ -14,8 +14,6 @@ import { telLink } from "@/lib/contact";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
 
-const SCENARIO_CITY = "La Guaira";
-
 const NAV = [
   { id: "resumen", icon: "📊", label: "Resumen" },
   { id: "reportes", icon: "📋", label: "Reportes" },
@@ -385,7 +383,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   reports={filteredReports}
                   theme={theme}
                   base="streets"
-                  center={[10.606, -66.91]}
+                  center={[8, -66]}
+                  zoom={6}
                   flyTarget={null}
                   onSelect={(r) => setSelected(r)}
                 />
@@ -431,9 +430,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
 
       {showReport && (
         <ReportForm
-          scenarioCity={SCENARIO_CITY}
           onClose={() => setShowReport(false)}
-          onSubmit={(draft) => submit(draft, SCENARIO_CITY, false)}
+          onSubmit={(draft) => submit(draft, false)}
         />
       )}
 
