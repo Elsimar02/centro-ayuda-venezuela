@@ -7,7 +7,7 @@ import { useReports } from "@/hooks/useReports";
 import { useTheme } from "@/lib/theme";
 import { Report, ReportType } from "@/lib/types";
 import { ReportForm } from "@/components/ReportForm";
-import { ReportRow } from "@/components/ReportRow";
+import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
 
@@ -87,7 +87,8 @@ export default function Home() {
             reports={filtered}
             theme={theme}
             base="streets"
-            center={[10.606, -66.915]}
+            center={[8, -66]}
+            zoom={6}
             flyTarget={flyTarget}
             onSelect={setSelected}
           />
@@ -142,39 +143,17 @@ export default function Home() {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 sm:items-center" onClick={() => setSelected(null)}>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl sm:rounded-3xl"
-            style={{ background: "var(--surface)" }}
-          >
-            <ReportRow
-              report={selected}
-              onVerify={() => verify(selected, "confirm")}
-              onFalse={() => verify(selected, "incorrect")}
-            />
-            <div className="p-4 text-sm" style={{ color: "var(--fg-2)" }}>{selected.description}</div>
-            <div className="flex gap-2 p-4">
-              <button
-                onClick={() => verify(selected, "attended")}
-                className="h-11 flex-1 rounded-xl text-sm font-bold text-white"
-                style={{ background: "var(--accent)" }}
-              >
-                Marcar atendido
-              </button>
-              <button
-                onClick={() => {
-                  setFlyTarget([selected.lat, selected.lng]);
-                  setSelected(null);
-                }}
-                className="h-11 flex-1 rounded-xl border text-sm font-bold"
-                style={{ borderColor: "var(--border)" }}
-              >
-                Ver en mapa
-              </button>
-            </div>
-          </div>
-        </div>
+        <ReportDetailPanel
+          report={selected}
+          onClose={() => setSelected(null)}
+          onVerify={() => verify(selected, "confirm")}
+          onFalse={() => verify(selected, "incorrect")}
+          onAttended={() => verify(selected, "attended")}
+          onViewMap={() => {
+            setFlyTarget([selected.lat, selected.lng]);
+            setSelected(null);
+          }}
+        />
       )}
 
       {showReport && (

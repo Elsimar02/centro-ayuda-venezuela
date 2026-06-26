@@ -37,6 +37,7 @@ export default function ReportMap({
   theme,
   base,
   center,
+  zoom = 6,
   flyTarget,
   onSelect,
 }: {
@@ -44,6 +45,7 @@ export default function ReportMap({
   theme: "light" | "dark";
   base: "streets" | "sat";
   center: [number, number];
+  zoom?: number;
   flyTarget: [number, number] | null;
   onSelect: (report: Report) => void;
 }) {
@@ -52,7 +54,7 @@ export default function ReportMap({
   return (
     <MapContainer
       center={center}
-      zoom={13}
+      zoom={zoom}
       zoomControl={false}
       attributionControl={false}
       style={{ height: "100%", width: "100%", background: "var(--surface-2)" }}
