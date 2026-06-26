@@ -11,6 +11,7 @@ export function useReports() {
   const [error, setError] = useState<string | null>(null);
   const offlineQueue = useRef<{ draft: Draft; city: string }[]>([]);
   const [queueCount, setQueueCount] = useState(0);
+  const channelId = useRef(`reports-changes-${Math.random().toString(36).slice(2)}`);
 
   useEffect(() => {
     let active = true;
@@ -29,7 +30,7 @@ export function useReports() {
       });
 
     const channel = supabase
-      .channel("reports-changes")
+      .channel(channelId.current)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "reports" },
