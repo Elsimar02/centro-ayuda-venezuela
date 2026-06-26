@@ -21,11 +21,25 @@ create index if not exists report_updates_report_id_idx
 alter table public.report_updates enable row level security;
 
 -- App pública de emergencia: cualquiera puede leer y aportar una actualización.
+-- Idempotente: drop + create para poder re-ejecutar sin error 42710.
+drop policy if exists "report_updates_select_all" on public.report_updates;
 create policy "report_updates_select_all" on public.report_updates
   for select using (true);
 
+drop policy if exists "report_updates_insert_all" on public.report_updates;
 create policy "report_updates_insert_all" on public.report_updates
   for insert with check (true);
 
 -- Realtime: que las actualizaciones aparezcan en vivo para todos los conectados.
-alter publication supabase_realtime add table public.report_updates;
+-- Guard para no fallar si la tabla ya está en la publicación.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'report_updates'
+  ) then
+    alter publication supabase_realtime add table public.report_updates;
+  end if;
+end $$;
