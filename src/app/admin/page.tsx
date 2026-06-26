@@ -205,6 +205,7 @@ export default function AdminPage() {
               </div>
               {reports.map((r) => (
                 <ReportRow
+                  onClick={() => setSelected(r)}
                   key={r.id}
                   report={r}
                   onClick={() => setSelected(r)}
@@ -248,6 +249,7 @@ export default function AdminPage() {
               </div>
               {pending.map((r) => (
                 <ReportRow
+                  onClick={() => setSelected(r)}
                   key={r.id}
                   report={r}
                   onClick={() => setSelected(r)}
@@ -274,7 +276,7 @@ export default function AdminPage() {
                 base="streets"
                 center={[10.606, -66.91]}
                 flyTarget={null}
-                onSelect={() => {}}
+                onSelect={(r) => setSelected(r)}
               />
             </div>
           )}

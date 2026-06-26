@@ -1,5 +1,5 @@
 import { SUPABASE_URL, supabase } from "./supabase";
-import { Draft, MediaItem, Report } from "./types";
+import { Draft, MediaItem, NewUpdate, Report, ReportUpdate, UPDATE_KINDS } from "./types";
 
 type ReportRow = {
   id: string;
@@ -57,12 +57,19 @@ export async function fetchReports(): Promise<Report[]> {
 
 function placeFor(d: Draft, scenarioCity: string): string {
   if (d.loc === "manual" && d.manual) return d.manual;
-  if (d.loc === "referencia" && d.reference) return d.reference;
+  if (d.loc === "referencia" && d.reference) {
+    return d.referenceArea ? `${d.reference} (radio aprox. ${Math.round(d.referenceArea.radius)} m)` : d.reference;
+  }
   return "Tu ubicación GPS · " + scenarioCity;
 }
 
 export async function submitReport(d: Draft, scenarioCity: string) {
-  const coords = d.loc === "manual" && d.manualCoords ? d.manualCoords : null;
+  const coords =
+    d.loc === "manual" && d.manualCoords
+      ? d.manualCoords
+      : d.loc === "referencia" && d.referenceArea
+        ? d.referenceArea
+        : null;
   const payload = {
     type: d.type || "ayuda",
     lat: coords?.lat ?? 10.606 + (Math.random() - 0.5) * 0.05,
@@ -78,12 +85,54 @@ export async function submitReport(d: Draft, scenarioCity: string) {
     vc_incorrect: 0,
     reporter_name: d.name || "Tú",
     contact_phone: d.phone || null,
-    details: d.extra || {},
+    details: {
+      ...(d.extra || {}),
+      ...(d.loc === "referencia" && d.referenceArea
+        ? { _approx_radius_m: String(Math.round(d.referenceArea.radius)) }
+        : {}),
+    },
     media: d.media,
   };
   const { data, error } = await supabase.from("reports").insert(payload).select().single();
   if (error) throw error;
   return fromRow(data as ReportRow);
+}
+
+// ── Actualizaciones en vivo por reporte ──
+
+export async function fetchUpdates(reportId: string): Promise<ReportUpdate[]> {
+  const { data, error } = await supabase
+    .from("report_updates")
+    .select("*")
+    .eq("report_id", reportId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data as ReportUpdate[];
+}
+
+export async function addUpdate(reportId: string, u: NewUpdate): Promise<ReportUpdate> {
+  const payload = {
+    report_id: reportId,
+    kind: u.kind,
+    message: u.message.trim(),
+    author_name: u.author_name.trim() || "Anónimo",
+    author_phone: u.author_phone.trim() || null,
+  };
+  const { data, error } = await supabase
+    .from("report_updates")
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+
+  // Algunas actualizaciones mueven el estado del reporte (y por realtime, el
+  // mapa de todos). Best-effort: si falla, la actualización ya quedó guardada.
+  const setStatus = UPDATE_KINDS[u.kind].setStatus;
+  if (setStatus) {
+    await supabase.from("reports").update({ status: setStatus }).eq("id", reportId).then(undefined, () => {});
+  }
+
+  return data as ReportUpdate;
 }
 
 export async function verifyReport(

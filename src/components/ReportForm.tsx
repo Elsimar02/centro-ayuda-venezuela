@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import {
   CATS,
@@ -31,6 +32,8 @@ const HELP_PRIORITY = Math.min(...HELP_TYPES.map((t) => REPORT_PRIORITY[t]));
 type TypeCard = { key: string; emoji: string; label: string; priority: number; onPick: () => void; isActive: (t: ReportType | null) => boolean };
 import { uploadPhoto } from "@/lib/reports";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+
+const RadiusPicker = dynamic(() => import("@/components/RadiusPicker"), { ssr: false });
 
 const STEPS = ["¿Qué ocurre?", "Ubicación", "Detalles", "Urgencia", "Revisar y enviar"];
 
@@ -476,13 +479,22 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
             />
           )}
           {o.id === "referencia" && draft.loc === "referencia" && (
-            <input
-              value={draft.reference}
-              onChange={(e) => setDraft((d) => ({ ...d, reference: e.target.value }))}
-              placeholder="Ej. Cerca de la panadería, al lado de la cancha"
-              className="mt-2 h-12 w-full rounded-xl border px-3.5 text-sm outline-none"
-              style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-            />
+            <>
+              <input
+                value={draft.reference}
+                onChange={(e) => setDraft((d) => ({ ...d, reference: e.target.value }))}
+                placeholder="Ej. Cerca de la panadería, al lado de la cancha"
+                className="mt-2 h-12 w-full rounded-xl border px-3.5 text-sm outline-none"
+                style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+              />
+              <p className="mt-2.5 text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                Marcar zona aproximada en el mapa (opcional)
+              </p>
+              <RadiusPicker
+                value={draft.referenceArea}
+                onChange={(v) => setDraft((d) => ({ ...d, referenceArea: v }))}
+              />
+            </>
           )}
         </div>
       ))}

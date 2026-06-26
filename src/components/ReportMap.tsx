@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip, ZoomControl, useMap } from "react-leaflet";
+import { Fragment, useEffect, useMemo } from "react";
+import { Circle, MapContainer, TileLayer, Marker, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import L from "leaflet";
 import { CATS, Report } from "@/lib/types";
 
@@ -87,17 +87,23 @@ export default function ReportMap({
       <FlyTo target={flyTarget} />
       {reports.map((r) => {
         const c = CATS[r.type];
+        const radius = Number(r.details?._approx_radius_m);
         return (
-          <Marker
-            key={r.id}
-            position={[r.lat, r.lng]}
-            icon={icon(r)}
-            eventHandlers={{ click: () => onSelect(r) }}
-          >
-            <Tooltip className="ccc-tooltip" direction="top" offset={[0, -38]} sticky>
-              {c.emoji} {c.label}
-            </Tooltip>
-          </Marker>
+          <Fragment key={r.id}>
+            {radius > 0 && (
+              <Circle
+                center={[r.lat, r.lng]}
+                radius={radius}
+                pathOptions={{ color: c.color, fillColor: c.color, fillOpacity: 0.12, weight: 1.5 }}
+              />
+            )}
+            <Marker position={[r.lat, r.lng]} icon={icon(r)} eventHandlers={{ click: () => onSelect(r) }}>
+              <Tooltip className="ccc-tooltip" direction="top" offset={[0, -38]} sticky>
+                {c.emoji} {c.label}
+                {radius > 0 ? ` · zona aprox. ${radius} m` : ""}
+              </Tooltip>
+            </Marker>
+          </Fragment>
         );
       })}
     </MapContainer>
