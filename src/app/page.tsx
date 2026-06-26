@@ -1,46 +1,23 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
 import { useTheme } from "@/lib/theme";
-import { MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { ReportRow } from "@/components/ReportRow";
-
-const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
+import { CitizenMapView } from "@/components/CitizenMapView";
+import { Report } from "@/lib/types";
 
 const SCENARIO_CITY = "La Guaira";
 
-type Tab = "resumen" | "mapa";
-
 export default function Home() {
-  const { reports, loading, error, submit, verify, flushQueue, queueCount } = useReports();
+  const { reports, loading, verify, submit } = useReports();
   const { theme, toggleTheme } = useTheme();
-  const [tab, setTab] = useState<Tab>("resumen");
-  const [filter, setFilter] = useState("todos");
+  const [showMap, setShowMap] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [selected, setSelected] = useState<Report | null>(null);
-  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
-  const [offline, setOffline] = useState(false);
-
-  function toggleOffline() {
-    if (offline) flushQueue();
-    setOffline((o) => !o);
-  }
-
-  function openOnMap(report: Report) {
-    setFlyTarget([report.lat, report.lng]);
-    setTab("mapa");
-  }
-
-  const filtered = useMemo(() => {
-    const def = MAP_FILTERS.find((f) => f.id === filter);
-    if (!def || def.types === "todos") return reports;
-    return reports.filter((r) => (def.types as ReportType[]).includes(r.type));
-  }, [reports, filter]);
 
   const statCards = useMemo(() => {
     const byStatus = (s: string) => reports.filter((r) => r.status === s).length;
@@ -70,6 +47,14 @@ export default function Home() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowMap(true)}
+            className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
+            style={{ borderColor: "var(--border)" }}
+          >
+            🗺️ <span className="hidden sm:inline">Mapa</span>
+          </button>
           <Link
             href="/admin"
             className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
@@ -77,7 +62,8 @@ export default function Home() {
           >
             🖥 <span className="hidden sm:inline">Panel</span>
           </Link>
-          <button type="button"
+          <button
+            type="button"
             onClick={toggleTheme}
             className="flex h-9 w-9 items-center justify-center rounded-lg border"
             style={{ borderColor: "var(--border)" }}
@@ -87,123 +73,38 @@ export default function Home() {
         </div>
       </header>
 
-      <nav
-        className="sticky top-[57px] z-20 flex gap-2 px-5 py-2"
-        style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
-      >
-        {([["resumen", "📊 Resumen"], ["mapa", "🗺️ Mapa"]] as [Tab, string][]).map(([id, label]) => (
-          <button
-            type="button"
-            key={id}
-            onClick={() => setTab(id)}
-            className="flex h-9 items-center rounded-xl px-3.5 text-xs font-bold"
-            style={{
-              background: tab === id ? "var(--accent)" : "var(--surface-2)",
-              color: tab === id ? "#fff" : "var(--fg-2)",
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      {tab === "resumen" && (
-        <main className="flex-1 p-4 sm:p-6">
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {statCards.map((s) => (
-              <div key={s.label} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                <div className="mb-2 text-lg">{s.icon}</div>
-                <div className="text-2xl font-extrabold">{s.value}</div>
-                <div className="text-xs font-semibold" style={{ color: "var(--muted)" }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-          <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            <div className="px-4 py-3 text-sm font-extrabold" style={{ borderBottom: "1px solid var(--border)" }}>
-              Reportes recientes
+      <main className="flex-1 p-4 sm:p-6">
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {statCards.map((s) => (
+            <div key={s.label} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <div className="mb-2 text-lg">{s.icon}</div>
+              <div className="text-2xl font-extrabold">{s.value}</div>
+              <div className="text-xs font-semibold" style={{ color: "var(--muted)" }}>{s.label}</div>
             </div>
-            {reports.slice(0, 10).map((r) => (
-              <ReportRow key={r.id} report={r} onClick={() => setSelected(r)} />
-            ))}
-            {!loading && reports.length === 0 && (
-              <div className="p-8 text-center text-sm" style={{ color: "var(--muted)" }}>
-                Sin reportes todavía · sé el primero en reportar
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowReport(true)}
-            className="fixed bottom-6 right-5 z-20 flex h-14 items-center gap-2 rounded-full px-5 font-extrabold text-white shadow-lg"
-            style={{ background: "var(--accent)" }}
-          >
-            + Reportar
-          </button>
-        </main>
-      )}
-
-      {tab === "mapa" && (
-        <div className="relative flex-1">
-          <div className="absolute inset-0">
-            <ReportMap
-              reports={filtered}
-              theme={theme}
-              base="streets"
-              center={[8, -66]}
-              zoom={6}
-              flyTarget={flyTarget}
-              onSelect={setSelected}
-            />
-          </div>
-
-          <div className="absolute left-3 right-3 top-3 z-20 flex gap-2">
-            <button type="button"
-              onClick={toggleOffline}
-              className="flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
-              style={{
-                borderColor: "var(--border)",
-                background: "var(--surface)",
-                color: offline ? "#d97706" : "#16a34a",
-              }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: offline ? "#d97706" : "#16a34a" }} />
-              {offline ? `OFFLINE · ${queueCount} en cola` : "EN LÍNEA"}
-            </button>
-          </div>
-
-          <div className="absolute left-0 right-0 top-14 z-20 flex gap-2 overflow-x-auto px-3 pb-1">
-            {MAP_FILTERS.map((f) => (
-              <button type="button"
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className="flex h-8.5 flex-shrink-0 items-center gap-1.5 rounded-xl border px-3.5 text-xs font-bold"
-                style={{
-                  background: filter === f.id ? "var(--accent)" : "var(--surface)",
-                  color: filter === f.id ? "#fff" : "var(--fg)",
-                  borderColor: filter === f.id ? "var(--accent)" : "var(--border)",
-                }}
-              >
-                <span>{f.emoji}</span>
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {loading && <StatusBanner text="Cargando reportes…" />}
-          {!loading && error && <StatusBanner text={error} tone="error" />}
-          {!loading && !error && filtered.length === 0 && (
-            <StatusBanner text="Sin reportes todavía · sé el primero en reportar" />
-          )}
-
-          <button type="button"
-            onClick={() => setShowReport(true)}
-            className="absolute bottom-6 right-5 z-20 flex h-14 items-center gap-2 rounded-full px-5 font-extrabold text-white shadow-lg"
-            style={{ background: "var(--accent)" }}
-          >
-            + Reportar
-          </button>
+          ))}
         </div>
-      )}
+        <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <div className="px-4 py-3 text-sm font-extrabold" style={{ borderBottom: "1px solid var(--border)" }}>
+            Reportes recientes
+          </div>
+          {reports.slice(0, 10).map((r) => (
+            <ReportRow key={r.id} report={r} onClick={() => setSelected(r)} />
+          ))}
+          {!loading && reports.length === 0 && (
+            <div className="p-8 text-center text-sm" style={{ color: "var(--muted)" }}>
+              Sin reportes todavía · sé el primero en reportar
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowReport(true)}
+          className="fixed bottom-6 right-5 z-20 flex h-14 items-center gap-2 rounded-full px-5 font-extrabold text-white shadow-lg"
+          style={{ background: "var(--accent)" }}
+        >
+          + Reportar
+        </button>
+      </main>
 
       {selected && (
         <ReportDetailPanel
@@ -213,10 +114,6 @@ export default function Home() {
           onFalse={() => verify(selected, "incorrect")}
           onAttended={() => verify(selected, "attended")}
           onResolved={() => verify(selected, "resolved")}
-          onViewMap={() => {
-            openOnMap(selected);
-            setSelected(null);
-          }}
         />
       )}
 
@@ -224,24 +121,11 @@ export default function Home() {
         <ReportForm
           scenarioCity={SCENARIO_CITY}
           onClose={() => setShowReport(false)}
-          onSubmit={(draft) => submit(draft, SCENARIO_CITY, offline)}
+          onSubmit={(draft) => submit(draft, SCENARIO_CITY, false)}
         />
       )}
-    </div>
-  );
-}
 
-function StatusBanner({ text, tone = "muted" }: { text: string; tone?: "muted" | "error" }) {
-  return (
-    <div
-      className="absolute left-3 right-3 top-28 z-20 rounded-xl px-3.5 py-2.5 text-center text-xs font-bold"
-      style={
-        tone === "error"
-          ? { background: "rgba(220,38,38,.12)", border: "1px solid rgba(220,38,38,.3)", color: "#dc2626" }
-          : { background: "var(--surface)", color: "var(--muted)" }
-      }
-    >
-      {text}
+      {showMap && <CitizenMapView onClose={() => setShowMap(false)} />}
     </div>
   );
 }
