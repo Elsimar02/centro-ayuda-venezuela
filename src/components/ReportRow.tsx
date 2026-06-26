@@ -1,6 +1,6 @@
 "use client";
 
-import { CATS, Report, STATUS } from "@/lib/types";
+import { CATS, RESOLVE_THRESHOLD, Report, STATUS } from "@/lib/types";
 
 function timeAgo(createdAt: string) {
   const m = Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000));
@@ -75,7 +75,21 @@ export function ReportRow({
             </button>
           )}
           {onDelete && (
-            <button type="button" onClick={onDelete} title="Eliminar" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--muted)" }}>
+            <button
+              type="button"
+              onClick={onDelete}
+              title={
+                report.vc_resolved >= RESOLVE_THRESHOLD
+                  ? "Eliminar"
+                  : `Necesita más de 7 confirmaciones de que está resuelto (lleva ${report.vc_resolved})`
+              }
+              className="h-8 w-8 rounded-lg border text-sm"
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--surface-2)",
+                color: report.vc_resolved >= RESOLVE_THRESHOLD ? "var(--muted)" : "var(--border)",
+              }}
+            >
               🗑
             </button>
           )}

@@ -11,9 +11,8 @@ export function useReports() {
   const [error, setError] = useState<string | null>(null);
   const offlineQueue = useRef<{ draft: Draft; city: string }[]>([]);
   const [queueCount, setQueueCount] = useState(0);
-  const channelId = useRef(`reports-changes-${Math.random().toString(36).slice(2)}`);
-
   useEffect(() => {
+    const channelId = `reports-changes-${Math.random().toString(36).slice(2)}`;
     let active = true;
     fetchReports()
       .then((rows) => {
@@ -30,7 +29,7 @@ export function useReports() {
       });
 
     const channel = supabase
-      .channel(channelId.current)
+      .channel(channelId)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "reports" },
@@ -70,25 +69,30 @@ export function useReports() {
     const queue = offlineQueue.current;
     offlineQueue.current = [];
     setQueueCount(0);
-    for (const { draft, city } of queue) {
-      try {
-        await submitReport(draft, city);
-      } catch {
-        // se perderá si falla; el usuario puede reintentar manualmente
-      }
-    }
+    // Cada envío es independiente, así que los mandamos en paralelo.
+    await Promise.all(
+      queue.map(({ draft, city }) =>
+        submitReport(draft, city).catch(() => {
+          // se perderá si falla; el usuario puede reintentar manualmente
+        })
+      )
+    );
     return queue.length;
   }, []);
 
-  const verify = useCallback(async (report: Report, kind: "confirm" | "attended" | "incorrect") => {
+  const verify = useCallback(async (report: Report, kind: "confirm" | "attended" | "incorrect" | "resolved") => {
     const patch = await verifyReport(report, kind);
     setReports((prev) => prev.map((r) => (r.id === report.id ? { ...r, ...patch } : r)));
   }, []);
 
   const moderate = useCallback(async (report: Report, action: "verify" | "false" | "delete") => {
     if (action === "delete") {
-      setReports((prev) => prev.filter((r) => r.id !== report.id));
-      await moderateReport(report, action);
+      try {
+        await moderateReport(report, action);
+        setReports((prev) => prev.filter((r) => r.id !== report.id));
+      } catch (e) {
+        alert(e instanceof Error ? e.message : "No se pudo eliminar el reporte.");
+      }
       return;
     }
     const patch = await moderateReport(report, action);

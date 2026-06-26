@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Circle, MapContainer, TileLayer, Marker, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import L from "leaflet";
 import { CATS, Report } from "@/lib/types";
@@ -71,6 +71,7 @@ export default function ReportMap({
   onSelect: (report: Report) => void;
 }) {
   const url = useMemo(() => tileUrl(theme, base), [theme, base]);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   return (
     <MapContainer
@@ -88,16 +89,28 @@ export default function ReportMap({
       {reports.map((r) => {
         const c = CATS[r.type];
         const radius = Number(r.details?._approx_radius_m);
+        const showRadius = radius > 0 && hoveredId === r.id;
         return (
           <Fragment key={r.id}>
-            {radius > 0 && (
+            {showRadius && (
               <Circle
                 center={[r.lat, r.lng]}
                 radius={radius}
                 pathOptions={{ color: c.color, fillColor: c.color, fillOpacity: 0.12, weight: 1.5 }}
               />
             )}
-            <Marker position={[r.lat, r.lng]} icon={icon(r)} eventHandlers={{ click: () => onSelect(r) }}>
+            <Marker
+              position={[r.lat, r.lng]}
+              icon={icon(r)}
+              eventHandlers={{
+                click: () => {
+                  setHoveredId(r.id);
+                  onSelect(r);
+                },
+                mouseover: () => setHoveredId(r.id),
+                mouseout: () => setHoveredId((id) => (id === r.id ? null : id)),
+              }}
+            >
               <Tooltip className="ccc-tooltip" direction="top" offset={[0, -38]} sticky>
                 {c.emoji} {c.label}
                 {radius > 0 ? ` · zona aprox. ${radius} m` : ""}

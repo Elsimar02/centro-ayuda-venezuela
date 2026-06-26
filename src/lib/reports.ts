@@ -1,5 +1,5 @@
 import { SUPABASE_URL, supabase } from "./supabase";
-import { Draft, MediaItem, NewUpdate, Report, ReportUpdate, UPDATE_KINDS } from "./types";
+import { Draft, MediaItem, NewUpdate, Report, ReportUpdate, RESOLVE_THRESHOLD, UPDATE_KINDS } from "./types";
 
 type ReportRow = {
   id: string;
@@ -15,6 +15,7 @@ type ReportRow = {
   vc_confirm: number;
   vc_attended: number;
   vc_incorrect: number;
+  vc_resolved: number;
   reporter_name: string;
   contact_phone: string | null;
   details: Record<string, string> | null;
@@ -37,6 +38,7 @@ function fromRow(row: ReportRow): Report {
     vc_confirm: row.vc_confirm,
     vc_attended: row.vc_attended,
     vc_incorrect: row.vc_incorrect,
+    vc_resolved: row.vc_resolved,
     reporter_name: row.reporter_name,
     contact_phone: row.contact_phone,
     details: row.details || {},
@@ -137,11 +139,12 @@ export async function addUpdate(reportId: string, u: NewUpdate): Promise<ReportU
 
 export async function verifyReport(
   report: Report,
-  kind: "confirm" | "attended" | "incorrect"
+  kind: "confirm" | "attended" | "incorrect" | "resolved"
 ) {
   const vc_confirm = report.vc_confirm + (kind === "confirm" ? 1 : 0);
   const vc_attended = report.vc_attended + (kind === "attended" ? 1 : 0);
   const vc_incorrect = report.vc_incorrect + (kind === "incorrect" ? 1 : 0);
+  const vc_resolved = report.vc_resolved + (kind === "resolved" ? 1 : 0);
   let confidence = report.confidence;
   let status = report.status;
   if (kind === "confirm") confidence = Math.min(99, confidence + 6);
@@ -150,13 +153,14 @@ export async function verifyReport(
     status = "en_proceso";
   }
   if (kind === "incorrect") confidence = Math.max(2, confidence - 12);
+  if (kind === "resolved" && vc_resolved >= RESOLVE_THRESHOLD) status = "resuelto";
 
   const { error } = await supabase
     .from("reports")
-    .update({ vc_confirm, vc_attended, vc_incorrect, confidence, status })
+    .update({ vc_confirm, vc_attended, vc_incorrect, vc_resolved, confidence, status })
     .eq("id", report.id);
   if (error) throw error;
-  return { vc_confirm, vc_attended, vc_incorrect, confidence, status };
+  return { vc_confirm, vc_attended, vc_incorrect, vc_resolved, confidence, status };
 }
 
 export async function moderateReport(
@@ -164,14 +168,24 @@ export async function moderateReport(
   action: "verify" | "false" | "delete"
 ) {
   if (action === "delete") {
-    const { error } = await supabase.from("reports").delete().eq("id", report.id);
+    if (report.vc_resolved < RESOLVE_THRESHOLD) {
+      throw new Error(
+        `No se puede eliminar: necesita más de 7 confirmaciones de que está resuelto (lleva ${report.vc_resolved}).`
+      );
+    }
+    // La política de RLS también exige vc_resolved > 7 — .select() nos deja
+    // confirmar que de verdad borró algo y no quedó bloqueado en silencio.
+    const { data, error } = await supabase.from("reports").delete().eq("id", report.id).select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No se pudo eliminar el reporte (bloqueado por la base de datos).");
+    }
     const paths = report.media.flatMap((m) => {
       const p = m.url && storagePath(m.url);
       return p ? [p] : [];
     });
-    for (const p of paths) {
-      await supabase.storage.from("report-media").remove([p]).catch(() => {});
+    if (paths.length > 0) {
+      await supabase.storage.from("report-media").remove(paths).catch(() => {});
     }
     return;
   }

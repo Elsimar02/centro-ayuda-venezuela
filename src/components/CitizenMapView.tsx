@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
 import { useTheme } from "@/lib/theme";
-import { Report, ReportType } from "@/lib/types";
+import { MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import dynamic from "next/dynamic";
@@ -11,19 +11,6 @@ import dynamic from "next/dynamic";
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
 
 const SCENARIO_CITY = "La Guaira";
-
-const FILTERS: { id: string; label: string; emoji: string; types: ReportType[] | "todos" }[] = [
-  { id: "todos", label: "Todos", emoji: "◎", types: "todos" },
-  { id: "personas", label: "Personas", emoji: "🔴", types: ["persona_desaparecida", "persona_encontrada_viva", "persona_fallecida"] },
-  { id: "atrapada", label: "Atrapados", emoji: "🆘", types: ["atrapada", "colapso"] },
-  { id: "calles", label: "Vías", emoji: "🚧", types: ["bloqueo", "peligro"] },
-  { id: "hospital", label: "Hospitales", emoji: "🏥", types: ["hospital", "hospital_insumos"] },
-  { id: "refugio", label: "Refugios", emoji: "⛺", types: ["refugio", "ayuda"] },
-  { id: "agua", label: "Agua", emoji: "💧", types: ["agua"] },
-  { id: "comida", label: "Comida", emoji: "🍞", types: ["alimentos"] },
-  { id: "medicinas", label: "Medicinas", emoji: "💊", types: ["insumos_disponibles"] },
-  { id: "mascotas", label: "Mascotas", emoji: "🐾", types: ["mascota_perdida", "mascota_encontrada"] },
-];
 
 export function CitizenMapView({ onClose }: { onClose: () => void }) {
   const { reports, loading, error, submit, verify, flushQueue, queueCount } = useReports();
@@ -40,7 +27,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
   }
 
   const filtered = useMemo(() => {
-    const def = FILTERS.find((f) => f.id === filter);
+    const def = MAP_FILTERS.find((f) => f.id === filter);
     if (!def || def.types === "todos") return reports;
     return reports.filter((r) => (def.types as ReportType[]).includes(r.type));
   }, [reports, filter]);
@@ -109,7 +96,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="absolute left-0 right-0 top-14 z-20 flex gap-2 overflow-x-auto px-3 pb-1">
-          {FILTERS.map((f) => (
+          {MAP_FILTERS.map((f) => (
             <button type="button"
               key={f.id}
               onClick={() => setFilter(f.id)}
@@ -148,6 +135,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
           onVerify={() => verify(selected, "confirm")}
           onFalse={() => verify(selected, "incorrect")}
           onAttended={() => verify(selected, "attended")}
+          onResolved={() => verify(selected, "resolved")}
           onViewMap={() => {
             setFlyTarget([selected.lat, selected.lng]);
             setSelected(null);
