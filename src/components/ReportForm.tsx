@@ -88,7 +88,7 @@ export function ReportForm({
 
   if (sentId) {
     return (
-      <Modal onClose={onClose}>
+      <Modal>
         <div className="flex flex-col items-center gap-3 p-8 text-center">
           <div className="text-4xl">✓</div>
           <h2 className="text-lg font-extrabold">Reporte enviado</h2>
@@ -108,7 +108,7 @@ export function ReportForm({
   }
 
   return (
-    <Modal onClose={onClose}>
+    <Modal>
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
         <button onClick={back} className="text-xl" aria-label="Atrás">‹</button>
         <h2 className="font-extrabold">Nuevo reporte</h2>
@@ -517,11 +517,10 @@ function Field({
   );
 }
 
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function Modal({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div
-        onClick={(e) => e.stopPropagation()}
         className="flex max-h-[90vh] w-full max-w-md flex-col rounded-3xl"
         style={{ background: "var(--surface)", color: "var(--fg)" }}
       >
