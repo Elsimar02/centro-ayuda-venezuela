@@ -76,3 +76,13 @@ body {
   0% { transform: scale(0.6); opacity: 0.55; }
   100% { transform: scale(2.4); opacity: 0; }
 }
+
+@keyframes ccslidein {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes ccfadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

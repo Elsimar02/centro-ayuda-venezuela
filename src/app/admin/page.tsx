@@ -8,6 +8,8 @@ import { usePresence } from "@/hooks/usePresence";
 import { useTheme } from "@/lib/theme";
 import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
+import { ReportDetailPanel } from "@/components/ReportDetailPanel";
+import { Report } from "@/lib/types";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
 
@@ -30,8 +32,10 @@ export default function AdminPage() {
   const { theme, toggleTheme } = useTheme();
   const [section, setSection] = useState<Section>("resumen");
   const [showReport, setShowReport] = useState(false);
+  const [selected, setSelected] = useState<Report | null>(null);
 
   const pending = useMemo(() => reports.filter((r) => r.status === "sin_verificar"), [reports]);
+  const selectedReport = selected ? reports.find((r) => r.id === selected.id) ?? selected : null;
 
   const statCards = useMemo(() => {
     const byStatus = (s: string) => reports.filter((r) => r.status === s).length;
@@ -147,9 +151,10 @@ export default function AdminPage() {
                     reports={reports}
                     theme={theme}
                     base="streets"
-                    center={[10.606, -66.91]}
+                    center={[8, -66]}
+                    zoom={6}
                     flyTarget={null}
-                    onSelect={() => {}}
+                    onSelect={setSelected}
                   />
                 </div>
                 <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
@@ -160,6 +165,7 @@ export default function AdminPage() {
                     <ReportRow
                       key={r.id}
                       report={r}
+                      onClick={() => setSelected(r)}
                       onVerify={() => moderate(r, "verify")}
                       onFalse={() => moderate(r, "false")}
                       onDelete={() => moderate(r, "delete")}
@@ -183,6 +189,7 @@ export default function AdminPage() {
                 <ReportRow
                   key={r.id}
                   report={r}
+                  onClick={() => setSelected(r)}
                   onVerify={() => moderate(r, "verify")}
                   onFalse={() => moderate(r, "false")}
                   onDelete={() => moderate(r, "delete")}
@@ -204,6 +211,7 @@ export default function AdminPage() {
                 <ReportRow
                   key={r.id}
                   report={r}
+                  onClick={() => setSelected(r)}
                   onVerify={() => moderate(r, "verify")}
                   onFalse={() => moderate(r, "false")}
                   onDelete={() => moderate(r, "delete")}
@@ -238,6 +246,15 @@ export default function AdminPage() {
           scenarioCity={SCENARIO_CITY}
           onClose={() => setShowReport(false)}
           onSubmit={(draft) => submit(draft, SCENARIO_CITY, false)}
+        />
+      )}
+
+      {selectedReport && (
+        <ReportDetailPanel
+          report={selectedReport}
+          onClose={() => setSelected(null)}
+          onVerify={() => moderate(selectedReport, "verify")}
+          onFalse={() => moderate(selectedReport, "false")}
         />
       )}
     </div>
