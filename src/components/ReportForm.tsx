@@ -4,13 +4,31 @@ import { useState } from "react";
 import {
   CATS,
   Draft,
+  HELP_SERVICE_OPTIONS,
+  HELP_TYPES,
   PEOPLE_COUNT_TYPES,
+  PERSON_STATUS_OPTIONS,
+  PERSON_TYPES,
+  PET_STATUS_OPTIONS,
+  PET_TYPES,
+  REPORT_PRIORITY,
   ReportType,
+  SHOW_URGENCY_TYPES,
   TYPE_FIELDS,
   URG,
   Urgency,
   freshDraft,
 } from "@/lib/types";
+
+const PERSON_CARD = { label: "Persona (desaparecida, localizada o fallecida)", emoji: "🧍" };
+const PET_CARD = { label: "Mascota (perdida o encontrada)", emoji: "🐾" };
+const HELP_CARD = { label: "Centro de ayuda (agua, alimentos, insumos)", emoji: "🤝" };
+
+const PERSON_PRIORITY = Math.min(...PERSON_TYPES.map((t) => REPORT_PRIORITY[t]));
+const PET_PRIORITY = Math.min(...PET_TYPES.map((t) => REPORT_PRIORITY[t]));
+const HELP_PRIORITY = Math.min(...HELP_TYPES.map((t) => REPORT_PRIORITY[t]));
+
+type TypeCard = { key: string; emoji: string; label: string; priority: number; onPick: () => void; isActive: (t: ReportType | null) => boolean };
 import { uploadPhoto } from "@/lib/reports";
 
 const STEPS = ["¿Qué ocurre?", "Ubicación", "Detalles", "Urgencia", "Revisar y enviar"];
@@ -32,6 +50,7 @@ export function ReportForm({
 
   const cat = draft.type ? CATS[draft.type] : null;
   const showPeople = draft.type ? PEOPLE_COUNT_TYPES.has(draft.type) : false;
+  const showUrgency = draft.type ? SHOW_URGENCY_TYPES.has(draft.type) : false;
   const extraFields = draft.type ? TYPE_FIELDS[draft.type] || [] : [];
 
   function back() {
@@ -47,7 +66,8 @@ export function ReportForm({
     }
     try {
       setError(null);
-      const created = await onSubmit(draft);
+      const finalDraft = showUrgency ? draft : { ...draft, urgency: "baja" as const };
+      const created = await onSubmit(finalDraft);
       setSentId(created.id);
     } catch {
       setError("No se pudo enviar el reporte. Intenta de nuevo.");
@@ -112,22 +132,66 @@ export function ReportForm({
       <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
         {step === 0 && (
           <div className="grid grid-cols-2 gap-2.5">
-            {Object.entries(CATS).map(([id, c]) => (
-              <button
-                key={id}
-                onClick={() => setDraft((d) => ({ ...d, type: id as ReportType }))}
-                className="flex min-h-[92px] w-full flex-col items-center gap-2 rounded-2xl border p-4 text-center"
-                style={{
-                  background: draft.type === id ? "var(--accent-soft)" : "var(--surface-2)",
-                  borderColor: draft.type === id ? "var(--accent)" : "var(--border)",
-                }}
-              >
-                <span className="text-2xl">{c.emoji}</span>
-                <span className="block w-full whitespace-normal break-words text-xs font-bold leading-tight">
-                  {c.label}
-                </span>
-              </button>
-            ))}
+            {(() => {
+              const cards: TypeCard[] = [
+                {
+                  key: "persona",
+                  emoji: PERSON_CARD.emoji,
+                  label: PERSON_CARD.label,
+                  priority: PERSON_PRIORITY,
+                  onPick: () => setDraft((d) => ({ ...d, type: PERSON_TYPES.includes(d.type as ReportType) ? d.type : "persona_desaparecida" })),
+                  isActive: (t: ReportType | null) => !!t && PERSON_TYPES.includes(t),
+                },
+                {
+                  key: "mascota",
+                  emoji: PET_CARD.emoji,
+                  label: PET_CARD.label,
+                  priority: PET_PRIORITY,
+                  onPick: () => setDraft((d) => ({ ...d, type: PET_TYPES.includes(d.type as ReportType) ? d.type : "mascota_perdida" })),
+                  isActive: (t: ReportType | null) => !!t && PET_TYPES.includes(t),
+                },
+                {
+                  key: "ayuda_centro",
+                  emoji: HELP_CARD.emoji,
+                  label: HELP_CARD.label,
+                  priority: HELP_PRIORITY,
+                  onPick: () => setDraft((d) => ({ ...d, type: HELP_TYPES.includes(d.type as ReportType) ? d.type : "ayuda" })),
+                  isActive: (t: ReportType | null) => !!t && HELP_TYPES.includes(t),
+                },
+                ...Object.entries(CATS)
+                  .filter(
+                    ([id]) =>
+                      !PERSON_TYPES.includes(id as ReportType) &&
+                      !PET_TYPES.includes(id as ReportType) &&
+                      !HELP_TYPES.includes(id as ReportType)
+                  )
+                  .map(([id, c]) => ({
+                    key: id,
+                    emoji: c.emoji,
+                    label: c.label,
+                    priority: REPORT_PRIORITY[id as ReportType],
+                    onPick: () => setDraft((d) => ({ ...d, type: id as ReportType })),
+                    isActive: (t: ReportType | null) => t === id,
+                  })),
+              ].sort((a, b) => a.priority - b.priority);
+
+              return cards.map((card) => (
+                <button
+                  key={card.key}
+                  onClick={card.onPick}
+                  className="flex min-h-[92px] w-full flex-col items-center gap-2 rounded-2xl border p-4 text-center"
+                  style={{
+                    background: card.isActive(draft.type) ? "var(--accent-soft)" : "var(--surface-2)",
+                    borderColor: card.isActive(draft.type) ? "var(--accent)" : "var(--border)",
+                  }}
+                >
+                  <span className="text-2xl">{card.emoji}</span>
+                  <span className="block w-full whitespace-normal break-words text-xs font-bold leading-tight">
+                    {card.label}
+                  </span>
+                </button>
+              ));
+            })()}
           </div>
         )}
 
@@ -137,6 +201,88 @@ export function ReportForm({
 
         {step === 2 && (
           <div className="flex flex-col gap-4">
+            {draft.type && PERSON_TYPES.includes(draft.type) && (
+              <div>
+                <label className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                  Estado de la persona
+                </label>
+                <div className="flex flex-col gap-2">
+                  {PERSON_STATUS_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.type}
+                      onClick={() => setDraft((d) => ({ ...d, type: opt.type }))}
+                      className="flex items-center gap-3 rounded-2xl border p-3.5 text-left"
+                      style={{
+                        background: draft.type === opt.type ? "var(--accent-soft)" : "var(--surface-2)",
+                        borderColor: draft.type === opt.type ? "var(--accent)" : "var(--border)",
+                      }}
+                    >
+                      <span className="text-lg">{opt.emoji}</span>
+                      <span className="text-sm font-bold">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {draft.type && PET_TYPES.includes(draft.type) && (
+              <div>
+                <label className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                  Estado de la mascota
+                </label>
+                <div className="flex flex-col gap-2">
+                  {PET_STATUS_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.type}
+                      onClick={() => setDraft((d) => ({ ...d, type: opt.type }))}
+                      className="flex items-center gap-3 rounded-2xl border p-3.5 text-left"
+                      style={{
+                        background: draft.type === opt.type ? "var(--accent-soft)" : "var(--surface-2)",
+                        borderColor: draft.type === opt.type ? "var(--accent)" : "var(--border)",
+                      }}
+                    >
+                      <span className="text-lg">{opt.emoji}</span>
+                      <span className="text-sm font-bold">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {draft.type && HELP_TYPES.includes(draft.type) && (
+              <div>
+                <label className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                  ¿Qué hay disponible?
+                </label>
+                <div className="flex flex-col gap-2">
+                  {HELP_SERVICE_OPTIONS.map((opt) => {
+                    const selected = (draft.extra.servicios || "").split(",").filter(Boolean);
+                    const checked = selected.includes(opt.key);
+                    return (
+                      <button
+                        key={opt.key}
+                        onClick={() =>
+                          setDraft((d) => {
+                            const cur = (d.extra.servicios || "").split(",").filter(Boolean);
+                            const next = checked ? cur.filter((k) => k !== opt.key) : [...cur, opt.key];
+                            return { ...d, type: "ayuda", extra: { ...d.extra, servicios: next.join(",") } };
+                          })
+                        }
+                        className="flex items-center gap-3 rounded-2xl border p-3.5 text-left"
+                        style={{
+                          background: checked ? "var(--accent-soft)" : "var(--surface-2)",
+                          borderColor: checked ? "var(--accent)" : "var(--border)",
+                        }}
+                      >
+                        <span className="text-lg">{opt.emoji}</span>
+                        <span className="text-sm font-bold">{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {extraFields.map((f) => (
               <Field
                 key={f.key}
@@ -222,30 +368,32 @@ export function ReportForm({
 
         {step === 3 && (
           <div className="flex flex-col gap-4">
-            <div>
-              <label className="mb-2.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                Nivel de urgencia
-              </label>
-              <div className="flex flex-col gap-2">
-                {(Object.entries(URG) as [Urgency, typeof URG[Urgency]][]).map(([id, u]) => (
-                  <button
-                    key={id}
-                    onClick={() => setDraft((d) => ({ ...d, urgency: id }))}
-                    className="flex items-center gap-3 rounded-2xl border p-3.5 text-left"
-                    style={{
-                      background: draft.urgency === id ? "var(--accent-soft)" : "var(--surface-2)",
-                      borderColor: draft.urgency === id ? "var(--accent)" : "var(--border)",
-                    }}
-                  >
-                    <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full" style={{ background: u.color }} />
-                    <span className="flex-1">
-                      <span className="block text-sm font-extrabold">{u.label}</span>
-                      <span className="block text-xs" style={{ color: "var(--muted)" }}>{u.hint}</span>
-                    </span>
-                  </button>
-                ))}
+            {showUrgency && (
+              <div>
+                <label className="mb-2.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
+                  Nivel de urgencia
+                </label>
+                <div className="flex flex-col gap-2">
+                  {(Object.entries(URG) as [Urgency, typeof URG[Urgency]][]).map(([id, u]) => (
+                    <button
+                      key={id}
+                      onClick={() => setDraft((d) => ({ ...d, urgency: id }))}
+                      className="flex items-center gap-3 rounded-2xl border p-3.5 text-left"
+                      style={{
+                        background: draft.urgency === id ? "var(--accent-soft)" : "var(--surface-2)",
+                        borderColor: draft.urgency === id ? "var(--accent)" : "var(--border)",
+                      }}
+                    >
+                      <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full" style={{ background: u.color }} />
+                      <span className="flex-1">
+                        <span className="block text-sm font-extrabold">{u.label}</span>
+                        <span className="block text-xs" style={{ color: "var(--muted)" }}>{u.hint}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             <Field label="Tu nombre (opcional)" placeholder="Tu nombre" value={draft.name} onChange={(v) => setDraft((d) => ({ ...d, name: v }))} />
             <Field label="Teléfono de contacto (opcional)" placeholder="Teléfono" value={draft.phone} onChange={(v) => setDraft((d) => ({ ...d, phone: v }))} />
           </div>
@@ -258,7 +406,7 @@ export function ReportForm({
               <div>
                 <div className="font-extrabold">{cat?.label || "Incidente"}</div>
                 <div className="text-xs" style={{ color: "var(--muted)" }}>
-                  {URG[draft.urgency].label}
+                  {showUrgency ? URG[draft.urgency].label : "Informativo"}
                   {showPeople ? ` · ${draft.people} persona(s)` : ""}
                 </div>
               </div>

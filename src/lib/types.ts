@@ -60,7 +60,7 @@ export const CATS: Record<ReportType, CatConfig> = {
   colapso: { label: "Edificio colapsado", emoji: "🏚️", color: "#b45309" },
   bloqueo: { label: "Vía bloqueada o intransitable", emoji: "🚧", color: "#e8950c" },
   peligro: { label: "Zona de peligro (réplicas, derrumbes, cables)", emoji: "⚠️", color: "#dc2626" },
-  ayuda: { label: "Centro de ayuda / acopio", emoji: "🟢", color: "#16a34a" },
+  ayuda: { label: "Centro de ayuda / acopio", emoji: "🤝", color: "#16a34a" },
   hospital: { label: "Hospital o centro de salud operativo", emoji: "🏥", color: "#2563eb" },
   hospital_insumos: { label: "Hospital necesita insumos urgentes", emoji: "🩺", color: "#2563eb" },
   insumos_disponibles: { label: "Insumos o medicinas para donar", emoji: "💉", color: "#db2777" },
@@ -72,6 +72,34 @@ export const CATS: Record<ReportType, CatConfig> = {
   mascota_perdida: { label: "Mascota perdida", emoji: "🐕", color: "#b45309" },
   mascota_encontrada: { label: "Mascota encontrada", emoji: "🐾", color: "#16a34a" },
 };
+
+export const PERSON_TYPES: ReportType[] = [
+  "persona_desaparecida",
+  "persona_encontrada_viva",
+  "persona_fallecida",
+];
+
+export const PERSON_STATUS_OPTIONS: { type: ReportType; label: string; emoji: string }[] = [
+  { type: "persona_desaparecida", label: "Desaparecida", emoji: "🔴" },
+  { type: "persona_encontrada_viva", label: "Localizada con vida", emoji: "🟢" },
+  { type: "persona_fallecida", label: "Fallecida", emoji: "⚫" },
+];
+
+export const PET_TYPES: ReportType[] = ["mascota_perdida", "mascota_encontrada"];
+
+export const PET_STATUS_OPTIONS: { type: ReportType; label: string; emoji: string }[] = [
+  { type: "mascota_perdida", label: "Perdida", emoji: "🐕" },
+  { type: "mascota_encontrada", label: "Encontrada", emoji: "🐾" },
+];
+
+export const HELP_TYPES: ReportType[] = ["ayuda", "agua", "alimentos", "insumos_disponibles"];
+
+export const HELP_SERVICE_OPTIONS: { key: string; label: string; emoji: string }[] = [
+  { key: "agua", label: "Agua potable", emoji: "💧" },
+  { key: "alimentos", label: "Alimentos / comida", emoji: "🍞" },
+  { key: "insumos", label: "Insumos o medicinas", emoji: "💉" },
+  { key: "otros", label: "Otro tipo de ayuda (ropa, voluntariado, etc.)", emoji: "🟢" },
+];
 
 export type FieldDef = { key: string; label: string; placeholder: string };
 
@@ -108,7 +136,6 @@ export const TYPE_FIELDS: Partial<Record<ReportType, FieldDef[]>> = {
     { key: "tipo_peligro", label: "Tipo de peligro", placeholder: "Ej. Riesgo de derrumbe, cables caídos" },
   ],
   ayuda: [
-    { key: "que_ofrecen", label: "Qué ofrecen", placeholder: "Ej. Ropa, agua, alimentos, voluntariado" },
     { key: "horario", label: "Horario de atención", placeholder: "Ej. 8am - 5pm" },
   ],
   hospital: [
@@ -153,6 +180,40 @@ export const TYPE_FIELDS: Partial<Record<ReportType, FieldDef[]>> = {
     { key: "donde_encontrada", label: "Dónde la encontraste", placeholder: "Ej. Cerca de la plaza" },
   ],
 };
+
+// Lower number = shown first (more critical / life-safety first, informational last).
+export const REPORT_PRIORITY: Record<ReportType, number> = {
+  atrapada: 1,
+  persona_desaparecida: 2,
+  persona_fallecida: 3,
+  ayuda: 4,
+  hospital_insumos: 5,
+  peligro: 6,
+  persona_encontrada_viva: 7,
+  hospital: 8,
+  refugio: 9,
+  agua: 10,
+  alimentos: 11,
+  insumos_disponibles: 12,
+  electricidad: 13,
+  internet: 14,
+  mascota_perdida: 15,
+  mascota_encontrada: 16,
+  colapso: 17,
+  bloqueo: 18,
+};
+
+// Types where urgency level is meaningful (actionable emergencies) vs. purely
+// informational reports (resource points, status updates) where it adds no value.
+export const SHOW_URGENCY_TYPES = new Set<ReportType>([
+  "persona_desaparecida",
+  "atrapada",
+  "colapso",
+  "bloqueo",
+  "peligro",
+  "hospital_insumos",
+  "electricidad",
+]);
 
 export const PEOPLE_COUNT_TYPES = new Set<ReportType>([
   "atrapada",
