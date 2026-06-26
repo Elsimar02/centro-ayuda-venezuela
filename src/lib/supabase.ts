@@ -10,6 +10,5 @@ if (!url || !key) {
 }
 
 export const SUPABASE_URL = url;
-export const SUPABASE_KEY = key;
 
 export const supabase = createClient(url, key);

@@ -3,7 +3,7 @@
 //  - "0412..." → "58412..."  (se quita el 0 de troncal y se antepone 58)
 //  - "+58412..." / "58412..." → se deja con 58
 //  - número local de 10 dígitos → se antepone 58
-export function waNumber(phone: string): string | null {
+function waNumber(phone: string): string | null {
   const digits = phone.replace(/\D/g, "");
   if (!digits) return null;
   if (digits.startsWith("58")) return digits;

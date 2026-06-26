@@ -96,6 +96,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
 
         <textarea
           value={message}
+          aria-label="Detalle de la actualización"
           onChange={(e) => setMessage(e.target.value)}
           placeholder={
             kind === "localizada"
@@ -108,6 +109,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
 
         <input
           value={name}
+          aria-label="Tu nombre"
           onChange={(e) => setName(e.target.value)}
           placeholder="Tu nombre (opcional)"
           className="h-11 w-full rounded-xl border px-3 text-sm outline-none"
@@ -115,6 +117,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
         />
         <input
           value={phone}
+          aria-label="Tu teléfono"
           onChange={(e) => setPhone(e.target.value)}
           inputMode="tel"
           placeholder="Tu teléfono (opcional)"

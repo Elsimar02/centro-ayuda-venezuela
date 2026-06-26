@@ -166,7 +166,10 @@ export async function moderateReport(
   if (action === "delete") {
     const { error } = await supabase.from("reports").delete().eq("id", report.id);
     if (error) throw error;
-    const paths = report.media.map((m) => m.url && storagePath(m.url)).filter(Boolean) as string[];
+    const paths = report.media.flatMap((m) => {
+      const p = m.url && storagePath(m.url);
+      return p ? [p] : [];
+    });
     for (const p of paths) {
       await supabase.storage.from("report-media").remove([p]).catch(() => {});
     }

@@ -62,6 +62,7 @@ export function AddressAutocomplete({
     <div className="relative">
       <input
         value={value}
+        aria-label="Buscar dirección"
         onChange={(e) => {
           onChange(e.target.value);
           setOpen(true);
@@ -85,7 +86,7 @@ export function AddressAutocomplete({
           {!loading &&
             suggestions.map((s, i) => (
               <button
-                key={i}
+                key={`${s.lat},${s.lng},${s.label}`}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {

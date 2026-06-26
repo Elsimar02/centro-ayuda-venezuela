@@ -61,6 +61,7 @@ export default function RadiusPicker({
           <div className="flex items-center gap-3">
             <input
               type="range"
+              aria-label="Radio de la zona en metros"
               min={50}
               max={1500}
               step={50}

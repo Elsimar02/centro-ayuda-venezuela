@@ -85,14 +85,14 @@ export default function AdminPage() {
           >
             ● {connectedUsers}
           </span>
-          <button
+          <button type="button"
             onClick={() => setShowReport(true)}
             className="hidden h-9 items-center rounded-lg px-3.5 text-xs font-extrabold text-white sm:flex"
             style={{ background: "var(--accent)" }}
           >
             + Reportar
           </button>
-          <button onClick={toggleTheme} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
+          <button type="button" onClick={toggleTheme} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
         </div>
@@ -103,7 +103,7 @@ export default function AdminPage() {
         style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
       >
         {NAV.map((n) => (
-          <button
+          <button type="button"
             key={n.id}
             onClick={() => setSection(n.id)}
             className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-bold whitespace-nowrap"
@@ -132,7 +132,7 @@ export default function AdminPage() {
           style={{ borderRight: "1px solid var(--border)", background: "var(--surface)" }}
         >
           {NAV.map((n) => (
-            <button
+            <button type="button"
               key={n.id}
               onClick={() => setSection(n.id)}
               className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-bold"
@@ -206,7 +206,6 @@ export default function AdminPage() {
               </div>
               {reports.map((r) => (
                 <ReportRow
-                  onClick={() => setSelected(r)}
                   key={r.id}
                   report={r}
                   onClick={() => setSelected(r)}
@@ -250,7 +249,6 @@ export default function AdminPage() {
               </div>
               {pending.map((r) => (
                 <ReportRow
-                  onClick={() => setSelected(r)}
                   key={r.id}
                   report={r}
                   onClick={() => setSelected(r)}
@@ -317,7 +315,7 @@ export default function AdminPage() {
         </main>
       </div>
 
-      <button
+      <button type="button"
         onClick={() => setShowReport(true)}
         className="fixed bottom-5 right-4 z-30 flex h-12 items-center gap-2 rounded-full px-5 text-sm font-extrabold text-white shadow-lg sm:hidden"
         style={{ background: "var(--accent)" }}
