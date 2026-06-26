@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import { CATS, Report } from "@/lib/types";
 
@@ -59,14 +59,21 @@ export default function ReportMap({
     >
       <TileLayer url={url} maxZoom={19} />
       <FlyTo target={flyTarget} />
-      {reports.map((r) => (
-        <Marker
-          key={r.id}
-          position={[r.lat, r.lng]}
-          icon={icon(r)}
-          eventHandlers={{ click: () => onSelect(r) }}
-        />
-      ))}
+      {reports.map((r) => {
+        const c = CATS[r.type];
+        return (
+          <Marker
+            key={r.id}
+            position={[r.lat, r.lng]}
+            icon={icon(r)}
+            eventHandlers={{ click: () => onSelect(r) }}
+          >
+            <Tooltip className="ccc-tooltip" direction="top" offset={[0, -38]} sticky>
+              {c.emoji} {c.label}
+            </Tooltip>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }

@@ -7,8 +7,11 @@ import { useReports } from "@/hooks/useReports";
 import { usePresence } from "@/hooks/usePresence";
 import { useTheme } from "@/lib/theme";
 import { ReportRow } from "@/components/ReportRow";
+import { ReportForm } from "@/components/ReportForm";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
+
+const SCENARIO_CITY = "La Guaira";
 
 const NAV = [
   { id: "resumen", icon: "📊", label: "Resumen" },
@@ -22,10 +25,11 @@ const NAV = [
 type Section = (typeof NAV)[number]["id"];
 
 export default function AdminPage() {
-  const { reports, moderate } = useReports();
+  const { reports, moderate, submit } = useReports();
   const connectedUsers = usePresence();
   const { theme, toggleTheme } = useTheme();
   const [section, setSection] = useState<Section>("resumen");
+  const [showReport, setShowReport] = useState(false);
 
   const pending = useMemo(() => reports.filter((r) => r.status === "sin_verificar"), [reports]);
 
@@ -52,6 +56,13 @@ export default function AdminPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold" style={{ color: "var(--muted)" }}>{connectedUsers} conectado(s)</span>
+          <button
+            onClick={() => setShowReport(true)}
+            className="hidden h-9 items-center rounded-lg px-3.5 text-xs font-extrabold text-white sm:flex"
+            style={{ background: "var(--accent)" }}
+          >
+            + Reportar
+          </button>
           <button onClick={toggleTheme} className="flex h-9 w-9 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
@@ -179,6 +190,14 @@ export default function AdminPage() {
           )}
         </main>
       </div>
+
+      {showReport && (
+        <ReportForm
+          scenarioCity={SCENARIO_CITY}
+          onClose={() => setShowReport(false)}
+          onSubmit={(draft) => submit(draft, SCENARIO_CITY, false)}
+        />
+      )}
     </div>
   );
 }
