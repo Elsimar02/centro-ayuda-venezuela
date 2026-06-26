@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { fetchReports, moderateReport, submitReport, verifyReport } from "@/lib/reports";
-import { Draft, Report } from "@/lib/types";
+import { Draft, Report, REPORT_PRIORITY } from "@/lib/types";
 
 export function useReports() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -94,5 +94,15 @@ export function useReports() {
     if (patch) setReports((prev) => prev.map((r) => (r.id === report.id ? { ...r, ...patch } : r)));
   }, []);
 
-  return { reports, loading, error, submit, verify, moderate, flushQueue, queueCount };
+  const sortedReports = useMemo(
+    () =>
+      [...reports].sort((a, b) => {
+        const diff = REPORT_PRIORITY[a.type] - REPORT_PRIORITY[b.type];
+        if (diff !== 0) return diff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }),
+    [reports]
+  );
+
+  return { reports: sortedReports, loading, error, submit, verify, moderate, flushQueue, queueCount };
 }
