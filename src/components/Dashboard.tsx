@@ -844,16 +844,17 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   No se pudo cargar la lista en este momento.
                 </div>
               )}
-              {externalVolunteers.map((v) => (
-                <div key={v.id} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <div className="font-bold">{v.title}</div>
-                  <div className="text-sm" style={{ color: "var(--fg-2)" }}>{v.description}</div>
-                  <div className="mt-1 flex flex-wrap gap-x-2 text-xs font-bold" style={{ color: "var(--muted)" }}>
-                    {[v.city, v.state].filter(Boolean).join(", ") || "Ubicación no especificada"}
-                    {v.contact ? ` · ${v.contact}` : ""}
+              {externalVolunteers
+                .filter((v) => v.contact && v.contact.trim().length > 0)
+                .map((v) => (
+                  <div key={v.id} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <div className="font-bold">{v.title}</div>
+                    <div className="text-sm" style={{ color: "var(--fg-2)" }}>{v.description}</div>
+                    <div className="mt-1 flex flex-wrap gap-x-2 text-xs font-bold" style={{ color: "var(--muted)" }}>
+                      {[v.city, v.state].filter(Boolean).join(", ") || "Ubicación no especificada"} · {v.contact}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
 
