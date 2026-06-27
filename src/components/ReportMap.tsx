@@ -1,7 +1,8 @@
 "use client";
 
-import { Fragment, memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Circle, MapContainer, TileLayer, Marker, Tooltip, ZoomControl, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { CATS, Report } from "@/lib/types";
 
@@ -27,7 +28,7 @@ function icon(type: Report["type"], urgency: Report["urgency"]) {
     urgency === "critica"
       ? `<div style="position:absolute;left:50%;top:13px;width:30px;height:30px;margin-left:-15px;border-radius:50%;background:${c.color};animation:ccpulse 1.8s ease-out infinite"></div>`
       : "";
-  const html = `<div style="position:relative;width:34px;height:46px">${ring}<div style="position:absolute;left:2px;top:0;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${c.color};border:2px solid #fff;box-shadow:0 3px 7px rgba(0,0,0,.4)"></div><div style="position:absolute;left:2px;top:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px">${c.emoji}</div></div>`;
+  const html = `<div style="position:relative;width:34px;height:46px">${ring}<div style="position:absolute;left:2px;top:0;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg) translateZ(0);background:${c.color};border:2px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.35)"></div><div style="position:absolute;left:2px;top:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px">${c.emoji}</div></div>`;
   const divIcon = L.divIcon({ className: "ccc-pin", html, iconSize: [34, 46], iconAnchor: [17, 40] });
   iconCache.set(key, divIcon);
   return divIcon;
@@ -35,13 +36,11 @@ function icon(type: Report["type"], urgency: Report["urgency"]) {
 
 const ReportMarker = memo(function ReportMarker({
   report,
-  hovered,
   onHover,
   onUnhover,
   onSelect,
 }: {
   report: Report;
-  hovered: boolean;
   onHover: (id: string) => void;
   onUnhover: (id: string) => void;
   onSelect: (report: Report) => void;
@@ -49,34 +48,24 @@ const ReportMarker = memo(function ReportMarker({
   const r = report;
   const c = CATS[r.type];
   const radius = Number(r.details?._approx_radius_m);
-  const showRadius = radius > 0 && hovered;
   return (
-    <Fragment>
-      {showRadius && (
-        <Circle
-          center={[r.lat, r.lng]}
-          radius={radius}
-          pathOptions={{ color: c.color, fillColor: c.color, fillOpacity: 0.12, weight: 1.5 }}
-        />
-      )}
-      <Marker
-        position={[r.lat, r.lng]}
-        icon={icon(r.type, r.urgency)}
-        eventHandlers={{
-          click: () => {
-            onHover(r.id);
-            onSelect(r);
-          },
-          mouseover: () => onHover(r.id),
-          mouseout: () => onUnhover(r.id),
-        }}
-      >
-        <Tooltip className="ccc-tooltip" direction="top" offset={[0, -38]} sticky>
-          {c.emoji} {c.label}
-          {radius > 0 ? ` · zona aprox. ${radius} m` : ""}
-        </Tooltip>
-      </Marker>
-    </Fragment>
+    <Marker
+      position={[r.lat, r.lng]}
+      icon={icon(r.type, r.urgency)}
+      eventHandlers={{
+        click: () => {
+          onHover(r.id);
+          onSelect(r);
+        },
+        mouseover: () => onHover(r.id),
+        mouseout: () => onUnhover(r.id),
+      }}
+    >
+      <Tooltip className="ccc-tooltip" direction="top" offset={[0, -38]} sticky>
+        {c.emoji} {c.label}
+        {radius > 0 ? ` · zona aprox. ${radius} m` : ""}
+      </Tooltip>
+    </Marker>
   );
 });
 
@@ -133,6 +122,11 @@ export default function ReportMap({
     (id: string) => setHoveredId((cur) => (cur === id ? null : cur)),
     []
   );
+  const hoveredReport = useMemo(
+    () => (hoveredId ? reports.find((r) => r.id === hoveredId) ?? null : null),
+    [hoveredId, reports]
+  );
+  const hoveredRadius = hoveredReport ? Number(hoveredReport.details?._approx_radius_m) : 0;
 
   return (
     <MapContainer
@@ -147,16 +141,29 @@ export default function ReportMap({
       <ZoomControl position="bottomleft" />
       <LocateButton />
       <FlyTo target={flyTarget} />
-      {reports.map((r) => (
-        <ReportMarker
-          key={r.id}
-          report={r}
-          hovered={hoveredId === r.id}
-          onHover={handleHover}
-          onUnhover={handleUnhover}
-          onSelect={onSelect}
+      {hoveredReport && hoveredRadius > 0 && (
+        <Circle
+          center={[hoveredReport.lat, hoveredReport.lng]}
+          radius={hoveredRadius}
+          pathOptions={{
+            color: CATS[hoveredReport.type].color,
+            fillColor: CATS[hoveredReport.type].color,
+            fillOpacity: 0.12,
+            weight: 1.5,
+          }}
         />
-      ))}
+      )}
+      <MarkerClusterGroup chunkedLoading maxClusterRadius={50} spiderfyOnMaxZoom disableClusteringAtZoom={15}>
+        {reports.map((r) => (
+          <ReportMarker
+            key={r.id}
+            report={r}
+            onHover={handleHover}
+            onUnhover={handleUnhover}
+            onSelect={onSelect}
+          />
+        ))}
+      </MarkerClusterGroup>
     </MapContainer>
   );
 }
