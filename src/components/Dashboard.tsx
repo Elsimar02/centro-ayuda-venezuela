@@ -235,22 +235,47 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const [selected, setSelected] = useState<Report | null>(null);
   const [showFullMap, setShowFullMap] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
-  // Compartir: usa el menú nativo del dispositivo (incluye WhatsApp) y, si no
-  // existe, abre WhatsApp directamente. Comparte la URL actual sin hardcodear.
-  async function shareApp() {
+  const SHARE_TEXT =
+    "🇻🇪 Centro de Coordinación Ciudadana — mapa en vivo para reportar y encontrar ayuda tras los sismos (personas, refugios, hospitales, agua, comida). Compártelo, puede salvar vidas:";
+
+  // Compartir el ENLACE (ideal para mandar a una persona o grupo: es clicable).
+  async function shareLink() {
+    setShareOpen(false);
     const url = typeof window !== "undefined" ? window.location.origin : "";
-    const text =
-      "🇻🇪 Centro de Coordinación Ciudadana — mapa en vivo para reportar y encontrar ayuda tras los sismos (personas, refugios, hospitales, agua, comida). Compártelo, puede salvar vidas:";
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "Centro de Coordinación Ciudadana", text, url });
+        await navigator.share({ title: "Centro de Coordinación Ciudadana", text: SHARE_TEXT, url });
         return;
       } catch {
         /* el usuario canceló */
       }
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener");
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${SHARE_TEXT} ${url}`)}`, "_blank", "noopener");
+  }
+
+  // Compartir la IMAGEN (ideal para estados de WhatsApp / historias de Instagram).
+  // No se puede publicar automáticamente; el menú nativo del teléfono deja
+  // elegir "Mi estado" o "Historia" en 2 toques con la imagen + texto ya cargados.
+  async function shareImage() {
+    setShareOpen(false);
+    const url = typeof window !== "undefined" ? window.location.origin : "";
+    try {
+      const res = await fetch("/compartir.jpg");
+      if (!res.ok) throw new Error("sin imagen");
+      const blob = await res.blob();
+      const file = new File([blob], "centro-coordinacion.jpg", { type: blob.type || "image/jpeg" });
+      if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], text: `${SHARE_TEXT} ${url}` });
+        return;
+      }
+      // Fallback (PC o sin soporte de archivos): abrir la imagen para guardarla.
+      window.open("/compartir.jpg", "_blank", "noopener");
+    } catch {
+      // Si no hay imagen aún, comparte el enlace.
+      shareLink();
+    }
   }
 
   const pending = useMemo(() => reports.filter((r) => r.status === "sin_verificar"), [reports]);
@@ -334,16 +359,49 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           >
             + Reportar
           </button>
-          <button
-            type="button"
-            onClick={shareApp}
-            aria-label="Compartir"
-            title="Compartir"
-            className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold text-white"
-            style={{ background: "#16a34a" }}
-          >
-            🔗 <span className="hidden sm:inline">Compartir</span>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShareOpen((o) => !o)}
+              aria-label="Compartir"
+              title="Compartir"
+              className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold text-white"
+              style={{ background: "#16a34a" }}
+            >
+              🔗 <span className="hidden sm:inline">Compartir</span>
+            </button>
+            {shareOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShareOpen(false)} />
+                <div
+                  className="absolute right-0 z-50 mt-1.5 w-60 overflow-hidden rounded-xl border shadow-lg"
+                  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+                >
+                  <button
+                    type="button"
+                    onClick={shareLink}
+                    className="flex w-full flex-col items-start gap-0.5 px-3.5 py-3 text-left text-sm font-bold"
+                    style={{ borderBottom: "1px solid var(--border-2)" }}
+                  >
+                    🔗 Compartir enlace
+                    <span className="text-[11px] font-normal" style={{ color: "var(--muted)" }}>
+                      Para mandar a alguien o a un grupo
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={shareImage}
+                    className="flex w-full flex-col items-start gap-0.5 px-3.5 py-3 text-left text-sm font-bold"
+                  >
+                    🖼️ Compartir imagen
+                    <span className="text-[11px] font-normal" style={{ color: "var(--muted)" }}>
+                      Para tu estado de WhatsApp o historia de IG
+                    </span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <button type="button" onClick={toggleTheme} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
