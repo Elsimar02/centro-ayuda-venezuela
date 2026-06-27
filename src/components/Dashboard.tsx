@@ -10,7 +10,7 @@ import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
-import { MAP_FILTERS, Report, ReportType } from "@/lib/types";
+import { CATS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { telLink } from "@/lib/contact";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
@@ -303,12 +303,35 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const pending = useMemo(() => reports.filter((r) => r.status === "sin_verificar"), [reports]);
   const selectedReport = selected ? reports.find((r) => r.id === selected.id) ?? selected : null;
 
-  const [reportFilter, setReportFilter] = useState("todos");
+  const [reportFilter, setReportFilterRaw] = useState("todos");
+  const [reportPage, setReportPage] = useState(1);
+  const [reportSearch, setReportSearch] = useState("");
+  const REPORTS_PER_PAGE = 20;
+  const setReportFilter = (v: string) => {
+    setReportFilterRaw(v);
+    setReportPage(1);
+  };
   const filteredReports = useMemo(() => {
     const def = MAP_FILTERS.find((f) => f.id === reportFilter);
-    if (!def || def.types === "todos") return reports;
-    return reports.filter((r) => (def.types as ReportType[]).includes(r.type));
+    const byType = !def || def.types === "todos" ? reports : reports.filter((r) => (def.types as ReportType[]).includes(r.type));
+    return byType.toSorted((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [reports, reportFilter]);
+  const searchedReports = useMemo(() => {
+    const q = reportSearch.trim().toLowerCase();
+    if (!q) return filteredReports;
+    return filteredReports.filter((r) => {
+      const haystack = [r.place, r.description, r.reporter_name, CATS[r.type]?.label, ...Object.values(r.details ?? {})]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [filteredReports, reportSearch]);
+  const recentReports = useMemo(
+    () => reports.toSorted((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8),
+    [reports]
+  );
+  const reportPageCount = Math.max(1, Math.ceil(searchedReports.length / REPORTS_PER_PAGE));
+  const pagedReports = searchedReports.slice((reportPage - 1) * REPORTS_PER_PAGE, reportPage * REPORTS_PER_PAGE);
 
   const statCards = useMemo(() => {
     const byStatus = (s: string) => reports.filter((r) => r.status === s).length;
@@ -560,9 +583,11 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   <div className="px-4 py-3 text-sm font-extrabold" style={{ borderBottom: "1px solid var(--border)" }}>
                     Reportes recientes
                   </div>
-                  {reports.slice(0, 8).map((r) => (
-                    <ReportRow key={r.id} report={r} onClick={() => setSelected(r)} {...rowActions(r)} />
-                  ))}
+                  <div className="flex flex-col gap-2.5 p-3">
+                    {recentReports.map((r) => (
+                      <ReportRow key={r.id} report={r} onClick={() => setSelected(r)} {...rowActions(r)} />
+                    ))}
+                  </div>
                   {reports.length === 0 && (
                     <div className="p-8 text-center text-sm" style={{ color: "var(--muted)" }}>Sin reportes todavía.</div>
                   )}
@@ -574,18 +599,54 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           {section === "reportes" && (
             <div className="flex flex-col gap-3">
               <FilterChips value={reportFilter} onChange={setReportFilter} />
-              <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-                  <span className="text-sm font-extrabold">Todos los reportes</span>
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>{filteredReports.length} en total</span>
-                </div>
-                {filteredReports.map((r) => (
+              <input
+                type="text"
+                value={reportSearch}
+                onChange={(e) => {
+                  setReportSearch(e.target.value);
+                  setReportPage(1);
+                }}
+                placeholder="Buscar por lugar, nombre o descripción..."
+                className="h-10 w-full rounded-xl border px-3.5 text-sm outline-none"
+                style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+              />
+              <div className="flex items-center justify-between px-1">
+                <span className="text-sm font-extrabold">Todos los reportes</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>{searchedReports.length} en total</span>
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {pagedReports.map((r) => (
                   <ReportRow key={r.id} report={r} onClick={() => setSelected(r)} {...rowActions(r)} />
                 ))}
-                {filteredReports.length === 0 && (
-                  <div className="p-10 text-center text-sm" style={{ color: "var(--muted)" }}>Sin reportes para este filtro.</div>
-                )}
               </div>
+              {searchedReports.length > 0 && reportPageCount > 1 && (
+                <div className="flex items-center justify-center gap-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setReportPage((p) => Math.max(1, p - 1))}
+                    disabled={reportPage <= 1}
+                    className="h-9 rounded-lg border px-3.5 text-sm font-bold disabled:opacity-40"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="text-sm" style={{ color: "var(--muted)" }}>
+                    Página {reportPage} de {reportPageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setReportPage((p) => Math.min(reportPageCount, p + 1))}
+                    disabled={reportPage >= reportPageCount}
+                    className="h-9 rounded-lg border px-3.5 text-sm font-bold disabled:opacity-40"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              )}
+              {searchedReports.length === 0 && (
+                <div className="p-10 text-center text-sm" style={{ color: "var(--muted)" }}>Sin reportes para este filtro.</div>
+              )}
             </div>
           )}
 
