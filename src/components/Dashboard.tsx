@@ -237,43 +237,64 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const [navOpen, setNavOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const SHARE_TEXT =
-    "🇻🇪 Centro de Coordinación Ciudadana — mapa en vivo para reportar y encontrar ayuda tras los sismos (personas, refugios, hospitales, agua, comida). Compártelo, puede salvar vidas:";
+  const appUrl = () => (typeof window !== "undefined" ? window.location.origin : "");
 
-  // Compartir el ENLACE (ideal para mandar a una persona o grupo: es clicable).
+  // Texto humano para acompañar la imagen/enlace (incluye el link porque en un
+  // estado o historia el enlace no es clicable: tiene que estar escrito).
+  function shareCaption() {
+    return (
+      "🇻🇪 Tras los terremotos, mucha gente está buscando a los suyos y necesitando ayuda.\n\n" +
+      "Hicimos un mapa ciudadano, gratis y sin registro, para reportar y encontrar en tiempo real: " +
+      "personas, refugios, hospitales, agua, comida y centros de acopio.\n\n" +
+      "Si no puedes ir, compartir también salva vidas 🙏\n" +
+      `👉 ${appUrl()}`
+    );
+  }
+
+  // Compartir el ENLACE (clicable, ideal para mandar a una persona o grupo).
   async function shareLink() {
     setShareOpen(false);
-    const url = typeof window !== "undefined" ? window.location.origin : "";
+    const url = appUrl();
+    const text =
+      "🇻🇪 Centro de Coordinación Ciudadana — mapa en vivo para reportar y encontrar ayuda tras los sismos. Gratis, sin registro. Compártelo, puede salvar vidas:";
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "Centro de Coordinación Ciudadana", text: SHARE_TEXT, url });
+        await navigator.share({ title: "Centro de Coordinación Ciudadana", text, url });
         return;
       } catch {
         /* el usuario canceló */
       }
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(`${SHARE_TEXT} ${url}`)}`, "_blank", "noopener");
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener");
   }
 
-  // Compartir la IMAGEN (ideal para estados de WhatsApp / historias de Instagram).
-  // No se puede publicar automáticamente; el menú nativo del teléfono deja
-  // elegir "Mi estado" o "Historia" en 2 toques con la imagen + texto ya cargados.
-  async function shareImage() {
+  // Compartir la IMAGEN para estado de WhatsApp / historia de Instagram.
+  // Importante: la web NO puede abrir el estado/historia directamente; se abre
+  // el menú del teléfono y el usuario elige WhatsApp/Instagram → Estado/Historia.
+  // Copiamos el texto al portapapeles porque Instagram no recibe el caption.
+  async function shareToStatus() {
     setShareOpen(false);
-    const url = typeof window !== "undefined" ? window.location.origin : "";
+    const caption = shareCaption();
+    try {
+      await navigator.clipboard?.writeText(caption);
+    } catch {
+      /* sin portapapeles */
+    }
     try {
       const res = await fetch("/compartir.jpg");
       if (!res.ok) throw new Error("sin imagen");
       const blob = await res.blob();
       const file = new File([blob], "centro-coordinacion.jpg", { type: blob.type || "image/jpeg" });
       if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: `${SHARE_TEXT} ${url}` });
+        await navigator.share({ files: [file], text: caption });
         return;
       }
-      // Fallback (PC o sin soporte de archivos): abrir la imagen para guardarla.
+      // PC o navegador sin compartir-archivos: abrir la imagen para descargarla.
       window.open("/compartir.jpg", "_blank", "noopener");
+      alert(
+        "Los estados/historias se publican desde el celular. Te abrí la imagen para guardarla y copiamos el texto. En tu teléfono: abre la app y toca Compartir → Estado/Historia."
+      );
     } catch {
-      // Si no hay imagen aún, comparte el enlace.
       shareLink();
     }
   }
@@ -379,23 +400,34 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 >
                   <button
                     type="button"
-                    onClick={shareLink}
+                    onClick={shareToStatus}
                     className="flex w-full flex-col items-start gap-0.5 px-3.5 py-3 text-left text-sm font-bold"
                     style={{ borderBottom: "1px solid var(--border-2)" }}
                   >
-                    🔗 Compartir enlace
+                    🟢 Subir a estado de WhatsApp
                     <span className="text-[11px] font-normal" style={{ color: "var(--muted)" }}>
-                      Para mandar a alguien o a un grupo
+                      Se abre el menú → elige WhatsApp → Mi estado
                     </span>
                   </button>
                   <button
                     type="button"
-                    onClick={shareImage}
+                    onClick={shareToStatus}
+                    className="flex w-full flex-col items-start gap-0.5 px-3.5 py-3 text-left text-sm font-bold"
+                    style={{ borderBottom: "1px solid var(--border-2)" }}
+                  >
+                    📸 Subir a historia de Instagram
+                    <span className="text-[11px] font-normal" style={{ color: "var(--muted)" }}>
+                      Se abre el menú → elige Instagram → Historia (el texto queda copiado)
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={shareLink}
                     className="flex w-full flex-col items-start gap-0.5 px-3.5 py-3 text-left text-sm font-bold"
                   >
-                    🖼️ Compartir imagen
+                    🔗 Compartir enlace
                     <span className="text-[11px] font-normal" style={{ color: "var(--muted)" }}>
-                      Para tu estado de WhatsApp o historia de IG
+                      Para mandar a alguien o a un grupo
                     </span>
                   </button>
                 </div>
