@@ -81,6 +81,18 @@ const DONATION_LINKS = [
   },
 ] as const;
 
+// Fuente: @misionnevadooficial (Instagram), post fijado.
+const COLLECTION_POINTS = [
+  {
+    name: "Sede administrativa de Misión Nevado",
+    address: "Av. Ávila con Av. Caracas, Edificio Transseguros, detrás del Excélsior Gama, San Bernardino, Caracas",
+  },
+  {
+    name: "Centro Veterinario Integral Los Ojos de Chávez",
+    address: "Nuevo Circo, edificio de Misión Vivienda, planta baja, Caracas",
+  },
+] as const;
+
 // Fuente: redayudavenezuela.com
 const HOSPITALS_CARACAS = [
   { name: "Hospital José Gregorio Hernández (Los Magallanes)", phones: ["(0212) 870.78.97"] },
@@ -502,6 +514,20 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 Plataformas para donar desde fuera de Venezuela, recomendadas por voluntarios en redes.
               </p>
               <LinkCardGrid items={DONATION_LINKS} />
+
+              <h2 className="mt-2 text-lg font-extrabold">📦 Centros de acopio (en persona)</h2>
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                Para llevar insumos en físico (agua, alimentos no perecederos, medicamentos básicos, ropa, cobijas).
+                Fuente: <span className="font-bold">@misionnevadooficial</span> (Instagram).
+              </p>
+              <div className="flex flex-col gap-3">
+                {COLLECTION_POINTS.map((p) => (
+                  <div key={p.name} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <div className="font-bold">{p.name}</div>
+                    <div className="text-sm" style={{ color: "var(--muted)" }}>{p.address}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
