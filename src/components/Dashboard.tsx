@@ -12,6 +12,7 @@ import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
+import { SeismicActivity } from "@/components/SeismicActivity";
 import { CATS, HOSPITAL_LIST_DISCLAIMER, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { telLink } from "@/lib/contact";
 
@@ -644,6 +645,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   )}
                 </div>
               </div>
+
+              <SeismicActivity />
             </div>
           )}
 
