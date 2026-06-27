@@ -17,13 +17,13 @@ const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false }
 
 const NAV = [
   { id: "resumen", icon: "📊", label: "Resumen" },
-  { id: "tutorial", icon: "📖", label: "Tutorial" },
   { id: "reportes", icon: "📋", label: "Reportes" },
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
   { id: "donaciones", icon: "💜", label: "Donaciones" },
   { id: "telefonos", icon: "☎️", label: "Teléfonos de emergencia" },
+  { id: "tutorial", icon: "📖", label: "Tutorial" },
 ] as const;
 
 const COMM_GROUPS = [
