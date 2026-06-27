@@ -390,6 +390,26 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
         <main className="flex-1 overflow-y-auto p-3.5 sm:p-6">
           {section === "resumen" && (
             <div className="flex flex-col gap-5">
+              <div
+                className="flex flex-col items-start gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
+                style={{ borderColor: "var(--accent)", background: "var(--accent-soft)" }}
+              >
+                <div>
+                  <div className="font-extrabold">¿Viste algo que reportar?</div>
+                  <div className="text-sm" style={{ color: "var(--fg-2)" }}>
+                    Es anónimo, no necesitas cuenta, y toma menos de 1 minuto.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowReport(true)}
+                  className="h-11 flex-shrink-0 rounded-xl px-5 text-sm font-extrabold text-white"
+                  style={{ background: "var(--accent)" }}
+                >
+                  + Reportar ahora
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-5">
                 {statCards.map((s) => (
                   <div key={s.label} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>

@@ -65,9 +65,12 @@ export function ReportForm({
     (draft.loc === "manual" && !!draft.manualCoords) ||
     (draft.loc === "referencia" && draft.reference.trim().length > 0);
 
+  const hasEnoughDetail = draft.desc.trim().length >= 15;
+
   async function next() {
     if (step === 0 && !draft.type) return;
     if (step === 1 && !hasLocation) return;
+    if (step === 2 && !hasEnoughDetail) return;
     if (step < 4) {
       setStep((s) => s + 1);
       return;
@@ -313,6 +316,11 @@ export function ReportForm({
                 className="h-28 w-full resize-none rounded-2xl border p-3 text-sm outline-none"
                 style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
               />
+              <div className="mt-1.5 text-xs font-bold" style={{ color: hasEnoughDetail ? "var(--muted)" : "#dc2626" }}>
+                {hasEnoughDetail
+                  ? "Gracias por el detalle, esto ayuda a quien responda."
+                  : "Cuenta un poco más (mínimo 15 caracteres) para que el reporte sea útil."}
+              </div>
             </div>
 
             {showPeople && (
@@ -443,7 +451,7 @@ export function ReportForm({
       <div className="flex gap-3 px-5 py-4" style={{ borderTop: "1px solid var(--border)" }}>
         <button type="button"
           onClick={next}
-          disabled={(step === 0 && !draft.type) || (step === 1 && !hasLocation)}
+          disabled={(step === 0 && !draft.type) || (step === 1 && !hasLocation) || (step === 2 && !hasEnoughDetail)}
           className="h-12 flex-1 rounded-2xl font-extrabold text-white disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
