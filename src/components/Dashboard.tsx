@@ -23,6 +23,7 @@ const NAV = [
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
   { id: "donaciones", icon: "💜", label: "Donaciones" },
   { id: "telefonos", icon: "☎️", label: "Teléfonos de emergencia" },
+  { id: "ingenieros", icon: "🏗️", label: "Ingenieros estructurales" },
   { id: "tutorial", icon: "📖", label: "Tutorial" },
 ] as const;
 
@@ -122,6 +123,105 @@ const FIREFIGHTERS = [
   { name: "Miranda", phones: ["(0212) 235.69.67"] },
   { name: "Plaza Venezuela", phones: ["(0212) 793.00.39", "(0212) 793.64.57"] },
   { name: "San Bernardino", phones: ["(0212) 577.92.09"] },
+] as const;
+
+// Fuente: @fceunimet (Instagram) — "Directorio Estructural", ingenieros civiles
+// egresados de distintas universidades venezolanas, voluntarios para consultas
+// estructurales gratis (remotas y presenciales) tras el terremoto del 24/6.
+const STRUCTURAL_ENGINEERS = [
+  { name: "Aitor Fernandez — Unimet (2026) · Los Samanes", phones: ["+58 414-4716351"] },
+  { name: "Alejandra Alibrandi — Unimet (2017) · Sebucán", phones: ["04146858882"] },
+  { name: "Alejandro Jaspe — UDO (2022) · El Tigre", phones: ["04248157440"] },
+  { name: "Alessandro Flora — UCV (2023) · Caracas", phones: ["+584142260133"] },
+  { name: "Alessandra Mazzaglia — Unimet (2026) · Santa Fe", phones: ["04142102929"] },
+  { name: "Ana Pacanins — Unimet (2019) · Altamira", phones: ["04241070817"] },
+  { name: "Andrés García — UCAB (2023) · Terrazas del Ávila", phones: ["04123525039"] },
+  { name: "Angel Lacruz — UCAB (2023) · San Bernardino", phones: ["04164211858"] },
+  { name: "Angel Marchena — UCV (2023) · El Paraíso", phones: ["04126133311"] },
+  { name: "Angello Sánchez — UCAB (2024) · Los Teques", phones: ["04241894136"] },
+  { name: "Arian Mier y Teran — Unimet (2024) · Hatillo", phones: ["04241920209"] },
+  { name: "Arianna Arenare — Unimet (2025) · Colinas de Bello Monte", phones: ["0424-2543583"] },
+  { name: "Bárbara Colmenares — UCV (2026) · Las Mercedes", phones: ["04241331888"] },
+  { name: "Blady Molina — Unimet (2024) · Palo Verde", phones: ["04149725267"] },
+  { name: "Brayan Malavé — UNEFA (2023) · La California", phones: ["04149017864"] },
+  { name: "Carlos Espinoza — UNEFA (2015) · Ciudad Bolívar", phones: ["04148565487"] },
+  { name: "Cesar Baute — Unimet (2024) · Santa Paula, El Cafetal", phones: ["+58 4241512494"] },
+  { name: "Cristina Hurtado — Unimet (2024) · Los Samanes", phones: ["+584143137185"] },
+  { name: "Daniel Hung — UCV (1985) · Los Ruices", phones: ["04129891838"] },
+  { name: "Daniela Castillo — Unimet (2023) · El Hatillo", phones: ["04146567867"] },
+  { name: "David Gutiérrez — USM (2011) · Urb. Miranda", phones: ["04242525273"] },
+  { name: "Diego Maceira — Unimet (2023) · El Cafetal", phones: ["04222889740"] },
+  { name: "Dionicio Romero — UCAB (2025) · España", phones: ["+34 623164500"] },
+  { name: "Eduardo Alvarado — UCAB (2025) · Av. San Martín", phones: ["04129097198"] },
+  { name: "Eduardo Rivera — UCAB (2024) · Caracas", phones: ["04241307632"] },
+  { name: "Elizabeth Superlano — Unimet (2021) · Barcelona, España", phones: ["+34 656499650"] },
+  { name: "Elvis Páez — UNEFA (2023) · El Valle", phones: ["04242788442"] },
+  { name: "Emely Mahfoud — UCV (2023) · Caracas", phones: ["04129909853"] },
+  { name: "Erika Hernández Berú — UCAB, Esp. Estructural (2017) · San Cristóbal, Táchira", phones: ["04163760186"] },
+  { name: "Ernesto Covuccia — Unimet (2026) · El Hatillo", phones: ["04242871396"] },
+  { name: "Ernesto Pullas — UCAB (2021) · San Bernardino", phones: ["04128005415"] },
+  { name: "Esther Rodríguez — Univ. de Carabobo (2008) · Montevideo, Uruguay", phones: ["+59892318555"] },
+  { name: "Euri Ardila — Univ. del Táchira (2023) · San Cristóbal, Táchira", phones: ["04143752613"] },
+  { name: "Fabiana Orellana — Unimet (2021) · USA", phones: ["+13213154097"] },
+  { name: "Genesis Moreno — Unimet (2026) · Terrazas del Club Hípico", phones: ["04142736398"] },
+  { name: "Génesis Morales — UCAB (2025) · Av. Libertador", phones: ["04141553677"] },
+  { name: "Gianfranco Ponzo — UNEFA / IMME (2013) · Isla de Margarita", phones: ["+584148926161"] },
+  { name: "Henry Sarmiento — UCV (2009) · La Victoria, Aragua", phones: ["04163424559"] },
+  { name: "Hugo Villalobos — UCAB (2021) · La Alta Florida", phones: ["+584243479698"] },
+  { name: "Isabella Valverde — Unimet (2024) · El Cafetal", phones: ["+584120130202"] },
+  { name: "Iván Salas — UCAB (2018) · San Agustín del Norte", phones: ["04142417745"] },
+  { name: "Ivan De Rugeriis — Unimet (2024) · Urbanización Miranda", phones: ["04142665232"] },
+  { name: "Javier Torres Sivoli — Univ. de La Plata, Argentina (2021) · Madrid", phones: ["+34661876615"] },
+  { name: "Jesús Alarze — UCV (2017) · Alto Prado", phones: ["04241462393"] },
+  { name: "Johan Cobo — IUP Santiago Mariño (2012) · Prados de María", phones: ["04144557642"] },
+  { name: "Jonathan Guerra — USM (2002) · Guarenas", phones: ["04122940188"] },
+  { name: "José Ángel Bernal Pérez — UJMV (1997) · Altos Mirandinos", phones: ["0412-0122864"] },
+  { name: "Jose Ramirez — IUP Santiago Mariño Maracay (2020) · Turmero, Aragua", phones: ["04121995345"] },
+  { name: "Josue Gonzalez — UCAB (2024) · Caracas", phones: ["+584222465717"] },
+  { name: "Josue Maldonado — UPT Mérida (2025) · Distrito Capital", phones: ["04247126476"] },
+  { name: "Juan Pablo Arocha — Unimet (2025) · Los Chorros", phones: ["04143787518"] },
+  { name: "Kenyer Carrasquel — UCV (2018) · Coche", phones: ["04120113607"] },
+  { name: "Kenji Ramírez — Unimet (2026) · El Cafetal", phones: ["04241734069"] },
+  { name: "Kevin Zerpa — UCAB (2024) · Los Dos Caminos", phones: ["04129803113"] },
+  { name: "Leopoldo Lecuna — Unimet (2023) · Los Palos Grandes", phones: ["04140110114"] },
+  { name: "Leyda Pérez — TSU Diseño Interior y Construcción Civil (2012) · Coche", phones: ["04142330155"] },
+  { name: "Loredana Espinoza — Unimet (2025) · Carrizal, Miranda", phones: ["04140201259"] },
+  { name: "Luis Baldó — UCAB (2026) · Chacao", phones: ["04127055652"] },
+  { name: "Luis Bayuelo — Unimet (2004) · Terrazas de Mampote", phones: ["04143005146"] },
+  { name: "Luis Larrazabal — Unimet (2025) · Cumbres de Curumo", phones: ["04241360755"] },
+  { name: "Luís Escalona — UCV / USM (2018) · Chacao/Los Palos Grandes", phones: ["04126001480"] },
+  { name: "Manuel Orozco — Unimet (2024) · La Florida", phones: ["04242996706"] },
+  { name: "Manuel Pagá — Unimet (2022) · Macaracuay", phones: ["04242642244"] },
+  { name: "Manuel Tapia U — Unimet (1985) · Caracas", phones: ["04120119155"] },
+  { name: "Marco Antonio Polo Cepeda — UCAB (2024) · Prados del Este", phones: ["04128126021"] },
+  { name: "Marcos Rodriguez — Unimet (1992) · El Cafetal", phones: ["04149442569"] },
+  { name: "María Daniela Avendaño — Unimet (2025) · Santa Fe", phones: ["04243063273"] },
+  { name: "Maria Estefania Parra — ULA (2019) · Caracas", phones: ["04126730738"] },
+  { name: "Maria Fernanda Raybaudi — UCAB (2022) · Chacao", phones: ["+584241990916"] },
+  { name: "María Gabriela Gutiérrez — UCLA (2007) · Caracas", phones: ["04122467788"] },
+  { name: "Maria Laura Isea — Unimet (2026) · Terrazas del Club Hípico", phones: ["04129960846"] },
+  { name: "Miguel Liendo — UCAB (2017) · Las Acacias", phones: ["04123014208"] },
+  { name: "Pablo Gonzalez — UCAB (2023) · El Paraíso", phones: ["04142043380"] },
+  { name: "Pedro Tineo — UCV (2022) · Chacao/Miranda", phones: ["04126121942"] },
+  { name: "Rafael Alcalá — IUT RC-UJMV (2006/2012) · Los Teques", phones: ["04142163347"] },
+  { name: "Rafael Fermín — Unimet (2025) · La Tahona", phones: ["04123120570"] },
+  { name: "Ricardo Algernon — UCAB (1980) · Terrazas Club Hípico", phones: ["04241739220"] },
+  { name: "Romer Marciales — IUP Santiago Mariño (2012) · Caracas", phones: ["04264758571"] },
+  { name: "Rubén Rincón — UNET (2019) · San Cristóbal, Táchira", phones: ["+584247846216"] },
+  { name: "Samira Yebaile — Unimet (1999) · Prados del Este/Santa Fe", phones: ["04149175436"] },
+  { name: "Sandra Alvarez — Unimet (2012) · El Hatillo", phones: ["04241456675"] },
+  { name: "Sandra Palacios — USM (1996) · La California Sur", phones: ["04241342750"] },
+  { name: "Santiago Pereira — UCAB (2026) · Colinas de Bello Monte", phones: ["04143156994"] },
+  { name: "Sebastián Cova — UCV (2025) · Caricuao", phones: ["04245132309"] },
+  { name: "Sebastián Olalquiaga — Unimet (2023) · Chacao", phones: ["04146212573"] },
+  { name: "Shaiel Centeno — Unimet (2024) · Lechería, Anzoátegui", phones: ["04248065170"] },
+  { name: "Stephanie Dávila — Unimet (2025) · Terrazas del Ávila", phones: ["04125533104"] },
+  { name: "Ulises Linares — UCAB (2024) · El Paraíso", phones: ["04243671607"] },
+  { name: "Vanessa Sosa — UCAB Guayana (2011) · Los Naranjos", phones: ["04249071110"] },
+  { name: "Veralucia Lemus — UCAB (2024) · Los Ruices", phones: ["04241439325"] },
+  { name: "Víctor Santana — Unimet (2026) · Terrazas del Ávila", phones: ["04241614659"] },
+  { name: "Victoria Romero — Unimet (2025) · Los Chaguaramos", phones: ["04241650588"] },
+  { name: "Wilneydi Medina — UCAB (2024) · Antimano", phones: ["04242515624"] },
 ] as const;
 
 type Section = (typeof NAV)[number]["id"];
@@ -417,6 +517,16 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
               <PhoneGroup title="🚨 Emergencias (línea directa)" entries={EMERGENCY_LINES} />
               <PhoneGroup title="🚑 Ambulancias" entries={AMBULANCES} />
               <PhoneGroup title="🚒 Bomberos" entries={FIREFIGHTERS} />
+            </div>
+          )}
+
+          {section === "ingenieros" && (
+            <div className="flex flex-col gap-5">
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                Ingenieros civiles voluntarios para consultas estructurales gratis (remotas y presenciales) tras el
+                terremoto del 24/6. Fuente: <span className="font-bold">@fceunimet</span> (Instagram).
+              </p>
+              <PhoneGroup title="🏗️ Ingenieros estructurales voluntarios" entries={STRUCTURAL_ENGINEERS} />
             </div>
           )}
 
