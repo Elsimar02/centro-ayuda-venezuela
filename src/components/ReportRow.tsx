@@ -1,13 +1,6 @@
 "use client";
 
-import { CATS, RESOLVE_THRESHOLD, Report, STATUS } from "@/lib/types";
-
-function timeAgo(createdAt: string) {
-  const m = Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000));
-  if (m <= 0) return "ahora";
-  if (m < 60) return `hace ${m} min`;
-  return `hace ${Math.round(m / 60)} h`;
-}
+import { CATS, RESOLVE_THRESHOLD, Report, STATUS, TYPE_FIELDS } from "@/lib/types";
 
 export function ReportRow({
   report,
@@ -25,6 +18,9 @@ export function ReportRow({
   const c = CATS[report.type];
   const st = STATUS[report.status];
   const showActions = onVerify || onFalse || onDelete;
+  const photoUrl = report.media.find((m) => m.kind === "foto" && m.url)?.url;
+  const keyFieldDef = TYPE_FIELDS[report.type]?.find((f) => report.details?.[f.key]);
+  const keyFieldValue = keyFieldDef ? report.details[keyFieldDef.key] : null;
 
   return (
     <div
@@ -41,24 +37,33 @@ export function ReportRow({
             }
           : undefined
       }
-      className="flex items-center gap-3 px-4 py-3"
-      style={{ borderBottom: "1px solid var(--border-2)", cursor: onClick ? "pointer" : "default" }}
+      className="flex items-center gap-3.5 rounded-2xl border p-3"
+      style={{ borderColor: "var(--border)", background: "var(--surface)", cursor: onClick ? "pointer" : "default" }}
     >
-      <span
-        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-lg"
-        style={{ background: `${c.color}24` }}
-      >
-        {c.emoji}
-      </span>
+      {photoUrl ? (
+        <img
+          src={photoUrl}
+          alt=""
+          loading="lazy"
+          className="h-16 w-16 flex-shrink-0 rounded-2xl object-cover"
+        />
+      ) : (
+        <span
+          className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl text-2xl"
+          style={{ background: "var(--surface-2)" }}
+        >
+          {c.emoji}
+        </span>
+      )}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-bold">{c.label}</div>
-        <div className="truncate text-xs" style={{ color: "var(--muted)" }}>
-          {report.place} · {timeAgo(report.created_at)}
+        <div className="truncate text-base font-bold">{keyFieldValue || c.label}</div>
+        <div className="truncate text-sm" style={{ color: "var(--muted)" }}>
+          {keyFieldValue ? c.label : report.place}
         </div>
       </div>
       <span
-        className="flex-shrink-0 rounded-md px-2 py-1 text-[10px] font-bold"
-        style={{ background: `${st.color}24`, color: st.color }}
+        className="flex-shrink-0 rounded-full px-3 py-1.5 text-sm font-bold"
+        style={{ background: `${st.color}1a`, color: st.color }}
       >
         {st.label}
       </span>
