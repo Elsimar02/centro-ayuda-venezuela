@@ -958,7 +958,7 @@ function PhoneGroup({
       <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
         {entries.map((e) => (
           <div key={e.name} className="rounded-xl border p-3.5" style={{ borderColor: "var(--border-2)" }}>
-            <div className="mb-2 text-sm font-bold">{e.name}</div>
+            <div className="mb-2 text-base font-bold">{e.name}</div>
             <div className="flex flex-wrap gap-1.5">
               {e.phones.map((p) => (
                 <a

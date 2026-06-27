@@ -64,7 +64,7 @@ export function ReportRow({
             </span>
           )}
         </div>
-        <div className="truncate text-sm" style={{ color: "var(--muted)" }}>
+        <div className="truncate text-sm font-semibold" style={{ color: "var(--fg-2)" }}>
           {keyFieldValue ? c.label : report.place}
         </div>
       </div>

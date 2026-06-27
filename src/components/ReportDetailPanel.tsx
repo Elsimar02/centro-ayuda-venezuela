@@ -88,7 +88,7 @@ export function ReportDetailPanel({
               {cat.emoji}
             </span>
             <div>
-              <div className="text-sm font-extrabold leading-tight">{cat.label}</div>
+              <div className="text-lg font-extrabold leading-tight">{cat.label}</div>
               <div className="text-xs" style={{ color: "var(--muted)" }}>{timeAgo(report.created_at)}</div>
             </div>
           </div>
@@ -103,7 +103,7 @@ export function ReportDetailPanel({
           </div>
 
           <Section title="Descripción">
-            <p className="text-sm" style={{ color: "var(--fg-2)" }}>
+            <p className="text-base font-semibold leading-snug" style={{ color: "var(--fg)" }}>
               {report.description || "Sin descripción."}
             </p>
           </Section>
@@ -117,7 +117,7 @@ export function ReportDetailPanel({
                   return (
                     <div key={f.key}>
                       <div className="text-xs font-bold" style={{ color: "var(--muted)" }}>{f.label}</div>
-                      <div className="text-sm" style={{ color: "var(--fg-2)" }}>{value}</div>
+                      <div className="text-base font-semibold" style={{ color: "var(--fg)" }}>{value}</div>
                     </div>
                   );
                 })}
@@ -126,7 +126,7 @@ export function ReportDetailPanel({
           )}
 
           <Section title="Ubicación">
-            <p className="text-sm" style={{ color: "var(--fg-2)" }}>
+            <p className="text-base font-bold leading-snug" style={{ color: "var(--fg)" }}>
               📍 {report.place}
               {radius > 0 ? ` · zona aprox. ${radius} m` : ""}
             </p>
@@ -134,7 +134,7 @@ export function ReportDetailPanel({
 
           {(report.reporter_name || report.contact_phone) && (
             <Section title="Reportado por">
-              <p className="text-sm" style={{ color: "var(--fg-2)" }}>{report.reporter_name || "Anónimo"}</p>
+              <p className="text-base font-bold" style={{ color: "var(--fg)" }}>{report.reporter_name || "Anónimo"}</p>
               {report.contact_phone && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {reporterWa && (
