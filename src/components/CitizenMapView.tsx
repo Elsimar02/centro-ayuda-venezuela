@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
 import { useExternalPets } from "@/hooks/useExternalPets";
 import { useTheme } from "@/lib/theme";
-import { MAP_FILTERS, Report, ReportType } from "@/lib/types";
+import { HOSPITAL_LIST_DISCLAIMER, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import dynamic from "next/dynamic";
@@ -117,7 +117,10 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
 
         {loading && <StatusBanner text="Cargando reportes…" />}
         {!loading && error && <StatusBanner text={error} tone="error" />}
-        {!loading && !error && filtered.length === 0 && (
+        {!loading && !error && filter === "lista_hospitales" && (
+          <StatusBanner text={HOSPITAL_LIST_DISCLAIMER} tone="warning" />
+        )}
+        {!loading && !error && filter !== "lista_hospitales" && filtered.length === 0 && (
           <StatusBanner text="Sin reportes todavía · sé el primero en reportar" />
         )}
 
@@ -155,13 +158,15 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
   );
 }
 
-function StatusBanner({ text, tone = "muted" }: { text: string; tone?: "muted" | "error" }) {
+function StatusBanner({ text, tone = "muted" }: { text: string; tone?: "muted" | "error" | "warning" }) {
   return (
     <div
       className="absolute left-3 right-3 top-28 z-20 rounded-xl px-3.5 py-2.5 text-center text-xs font-bold"
       style={
         tone === "error"
           ? { background: "rgba(220,38,38,.12)", border: "1px solid rgba(220,38,38,.3)", color: "#dc2626" }
+          : tone === "warning"
+          ? { background: "rgba(124,58,237,.12)", border: "1px solid rgba(124,58,237,.3)", color: "#7c3aed", lineHeight: 1.4 }
           : { background: "var(--surface)", color: "var(--muted)" }
       }
     >
