@@ -51,7 +51,14 @@ export function ReportRow({
         {c.emoji}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-bold">{c.label}</div>
+        <div className="truncate text-sm font-bold">
+          {c.label}
+          {report.external && (
+            <span className="ml-1.5 rounded-md px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "var(--surface-3)", color: "var(--muted)" }}>
+              🌐 externo
+            </span>
+          )}
+        </div>
         <div className="truncate text-xs" style={{ color: "var(--muted)" }}>
           {report.place} · {timeAgo(report.created_at)}
         </div>

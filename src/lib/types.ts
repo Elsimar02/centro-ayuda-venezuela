@@ -49,6 +49,9 @@ export type Report = {
   details: Record<string, string>;
   media: MediaItem[];
   created_at: string;
+  // Presente solo en reportes leídos en vivo desde otra plataforma (no viven en
+  // nuestra base de datos): se les oculta moderación/edición y se les atribuye la fuente.
+  external?: { source: string; url: string };
 };
 
 // ── Actualizaciones en vivo por reporte ──

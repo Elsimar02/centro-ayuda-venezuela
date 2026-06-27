@@ -180,16 +180,31 @@ export function ReportDetailPanel({
             </Section>
           )}
 
-          <Section title="Verificación ciudadana">
-            <div className="flex flex-wrap gap-4 text-sm" style={{ color: "var(--fg-2)" }}>
-              <span>✓ {report.vc_confirm} confirmaron</span>
-              <span>🏁 {report.vc_attended} atendido</span>
-              <span>⚑ {report.vc_incorrect} incorrecto</span>
-              <span>✅ {report.vc_resolved}/{RESOLVE_THRESHOLD} dicen que ya está resuelto</span>
-            </div>
-          </Section>
+          {report.external ? (
+            <Section title="Fuente">
+              <p className="text-sm" style={{ color: "var(--fg-2)" }}>
+                Publicado por la comunidad en{" "}
+                <a href={report.external.url} target="_blank" rel="noopener noreferrer" className="font-bold underline">
+                  {report.external.source}
+                </a>
+                . No podemos moderar ni editar este reporte — si ya se resolvió o se eliminó allá, desaparecerá de aquí
+                automáticamente.
+              </p>
+            </Section>
+          ) : (
+            <>
+              <Section title="Verificación ciudadana">
+                <div className="flex flex-wrap gap-4 text-sm" style={{ color: "var(--fg-2)" }}>
+                  <span>✓ {report.vc_confirm} confirmaron</span>
+                  <span>🏁 {report.vc_attended} atendido</span>
+                  <span>⚑ {report.vc_incorrect} incorrecto</span>
+                  <span>✅ {report.vc_resolved}/{RESOLVE_THRESHOLD} dicen que ya está resuelto</span>
+                </div>
+              </Section>
 
-          <ReportUpdates reportId={report.id} />
+              <ReportUpdates reportId={report.id} />
+            </>
+          )}
         </div>
 
         {lightbox && (

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
+import { useExternalPets } from "@/hooks/useExternalPets";
 import { useTheme } from "@/lib/theme";
 import { MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { ReportForm } from "@/components/ReportForm";
@@ -12,6 +13,7 @@ const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false }
 
 export function CitizenMapView({ onClose }: { onClose: () => void }) {
   const { reports, loading, error, submit, verify, flushQueue, queueCount } = useReports();
+  const externalPets = useExternalPets();
   const { theme, toggleTheme } = useTheme();
   const [filter, setFilter] = useState("todos");
   const [showReport, setShowReport] = useState(false);
@@ -24,11 +26,13 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
     setOffline((o) => !o);
   }
 
+  const allReports = useMemo(() => [...reports, ...externalPets], [reports, externalPets]);
+
   const filtered = useMemo(() => {
     const def = MAP_FILTERS.find((f) => f.id === filter);
-    if (!def || def.types === "todos") return reports;
-    return reports.filter((r) => (def.types as ReportType[]).includes(r.type));
-  }, [reports, filter]);
+    if (!def || def.types === "todos") return allReports;
+    return allReports.filter((r) => (def.types as ReportType[]).includes(r.type));
+  }, [allReports, filter]);
 
   return (
     <div className="fixed inset-0 z-50 flex min-h-screen flex-col" style={{ background: "var(--bg)", color: "var(--fg)" }}>
@@ -130,10 +134,10 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
         <ReportDetailPanel
           report={selected}
           onClose={() => setSelected(null)}
-          onVerify={() => verify(selected, "confirm")}
-          onFalse={() => verify(selected, "incorrect")}
-          onAttended={() => verify(selected, "attended")}
-          onResolved={() => verify(selected, "resolved")}
+          onVerify={selected.external ? undefined : () => verify(selected, "confirm")}
+          onFalse={selected.external ? undefined : () => verify(selected, "incorrect")}
+          onAttended={selected.external ? undefined : () => verify(selected, "attended")}
+          onResolved={selected.external ? undefined : () => verify(selected, "resolved")}
           onViewMap={() => {
             setFlyTarget([selected.lat, selected.lng]);
             setSelected(null);
