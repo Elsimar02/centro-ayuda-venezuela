@@ -22,6 +22,7 @@ export function ReportDetailPanel({
   onAttended,
   onResolved,
   onViewMap,
+  moderator = false,
 }: {
   report: Report;
   onClose: () => void;
@@ -30,6 +31,7 @@ export function ReportDetailPanel({
   onAttended?: () => void;
   onResolved?: () => void;
   onViewMap?: () => void;
+  moderator?: boolean;
 }) {
   const cat = CATS[report.type];
   const st = STATUS[report.status];
@@ -39,6 +41,18 @@ export function ReportDetailPanel({
   const radius = Number(report.details?._approx_radius_m);
   const reporterWa = report.contact_phone ? waLink(report.contact_phone) : null;
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Ejecuta la acción y muestra una confirmación visible (el cambio en los
+  // contadores es sutil, así que sin feedback parece que el botón no hace nada).
+  function act(fn: (() => void) | undefined, msg: string) {
+    return () => {
+      if (!fn) return;
+      fn();
+      setFeedback(msg);
+      window.setTimeout(() => setFeedback(null), 3000);
+    };
+  }
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -206,20 +220,40 @@ export function ReportDetailPanel({
             className="sticky bottom-0 mt-auto flex flex-col gap-2 p-5"
             style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}
           >
+            {feedback && (
+              <div
+                className="rounded-xl px-3 py-2 text-center text-xs font-bold"
+                style={{ background: "rgba(22,163,74,.12)", color: "#15803d" }}
+              >
+                {feedback}
+              </div>
+            )}
             <div className="flex gap-2">
               {onVerify && (
-                <ActionButton onClick={onVerify} tone="green">✓ Verificado</ActionButton>
+                <ActionButton
+                  onClick={act(onVerify, moderator ? "Reporte verificado." : "¡Gracias! Sumaste una confirmación.")}
+                  tone="green"
+                >
+                  {moderator ? "✓ Verificado" : "✓ Confirmo que es real"}
+                </ActionButton>
               )}
               {onAttended && (
-                <ActionButton onClick={onAttended} tone="accent">Marcar atendido</ActionButton>
+                <ActionButton onClick={act(onAttended, "Gracias, marcado como “en proceso”.")} tone="accent">
+                  🛠️ Ya se atiende
+                </ActionButton>
               )}
               {onFalse && (
-                <ActionButton onClick={onFalse} tone="red">⚑ Falso</ActionButton>
+                <ActionButton
+                  onClick={act(onFalse, moderator ? "Marcado como falso." : "Gracias, registramos tu reporte.")}
+                  tone="red"
+                >
+                  {moderator ? "⚑ Falso" : "⚠️ Es incorrecto"}
+                </ActionButton>
               )}
             </div>
             {onResolved && (
               <div className="flex">
-                <ActionButton onClick={onResolved} tone="accent">
+                <ActionButton onClick={act(onResolved, "Gracias, sumaste una confirmación de “resuelto”.")} tone="accent">
                   ✅ Ya está resuelto ({report.vc_resolved}/{RESOLVE_THRESHOLD})
                 </ActionButton>
               </div>

@@ -1,5 +1,5 @@
 import { SUPABASE_URL, supabase } from "./supabase";
-import { Draft, MediaItem, NewUpdate, Report, ReportUpdate, RESOLVE_THRESHOLD, UPDATE_KINDS } from "./types";
+import { CONFIRM_THRESHOLD, Draft, MediaItem, NewUpdate, Report, ReportUpdate, RESOLVE_THRESHOLD, UPDATE_KINDS } from "./types";
 
 type ReportRow = {
   id: string;
@@ -153,7 +153,19 @@ export async function verifyReport(
   const vc_resolved = report.vc_resolved + (kind === "resolved" ? 1 : 0);
   let confidence = report.confidence;
   let status = report.status;
-  if (kind === "confirm") confidence = Math.min(99, confidence + 6);
+  if (kind === "confirm") {
+    confidence = Math.min(99, confidence + 6);
+    // 5+ confirmaciones ciudadanas verifican el reporte automáticamente, pero
+    // solo si no está disputado: las confirmaciones deben ser al menos el doble
+    // de los reportes de "incorrecto". No pisa falso/en proceso/resuelto.
+    if (
+      vc_confirm >= CONFIRM_THRESHOLD &&
+      vc_confirm >= 2 * vc_incorrect &&
+      status === "sin_verificar"
+    ) {
+      status = "verificado";
+    }
+  }
   if (kind === "attended") {
     confidence = Math.min(99, confidence + 3);
     status = "en_proceso";
