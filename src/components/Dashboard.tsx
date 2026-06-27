@@ -443,6 +443,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
         <ReportDetailPanel
           report={selectedReport}
           onClose={() => setSelected(null)}
+          moderator={canModerate}
           onResolved={() => verify(selectedReport, "resolved")}
           {...detailActions}
         />

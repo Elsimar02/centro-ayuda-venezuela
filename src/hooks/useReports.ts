@@ -81,8 +81,12 @@ export function useReports() {
   }, []);
 
   const verify = useCallback(async (report: Report, kind: "confirm" | "attended" | "incorrect" | "resolved") => {
-    const patch = await verifyReport(report, kind);
-    setReports((prev) => prev.map((r) => (r.id === report.id ? { ...r, ...patch } : r)));
+    try {
+      const patch = await verifyReport(report, kind);
+      setReports((prev) => prev.map((r) => (r.id === report.id ? { ...r, ...patch } : r)));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "No se pudo registrar tu confirmación. Intenta de nuevo.");
+    }
   }, []);
 
   const moderate = useCallback(async (report: Report, action: "verify" | "false" | "delete") => {
