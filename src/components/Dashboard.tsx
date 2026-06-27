@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
+import { useExternalPets } from "@/hooks/useExternalPets";
+import { useExternalVolunteers } from "@/hooks/useExternalVolunteers";
 import { usePresence } from "@/hooks/usePresence";
 import { useTheme } from "@/lib/theme";
 import { ReportRow } from "@/components/ReportRow";
@@ -23,6 +25,7 @@ const NAV = [
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
   { id: "donaciones", icon: "💜", label: "Donaciones" },
   { id: "telefonos", icon: "☎️", label: "Teléfonos de emergencia" },
+  { id: "voluntariado", icon: "🤝", label: "Voluntariado" },
   { id: "ingenieros", icon: "🏗️", label: "Ingenieros estructurales" },
   { id: "tutorial", icon: "📖", label: "Tutorial" },
 ] as const;
@@ -78,6 +81,65 @@ const DONATION_LINKS = [
     desc: "Vía GlobalGiving: atención integral (salud, educación, alimentación, protección legal) a 120 niños huérfanos o abandonados en Caracas.",
     url: "https://www.globalgiving.org/projects/integral-support-program-for-children/",
     cta: "Donar en GlobalGiving",
+  },
+] as const;
+
+// Fuente: redayudavenezuela.com (entradas curadas, no publicaciones de usuarios individuales).
+const VOLUNTEER_ORGS = [
+  {
+    name: "Cruz Roja Venezolana — Hazte voluntario",
+    desc: "Principal organización humanitaria en terreno (rescate, albergues, atención médica y apoyo psicosocial). Reclutan todo el año, sin experiencia previa (te capacitan), desde los 15 años.",
+    contact: "cruzroja.ve/haz-voluntariado · IG @cruzrojave · caracas@cruzroja.ve",
+  },
+  {
+    name: "Cáritas de Venezuela — Voluntariado y acopio",
+    desc: "Red de la Iglesia Católica (~30.000 voluntarios) que coordina centros de acopio y respuesta a la emergencia. Ofrécete o lleva donaciones. Sede: Av. Teherán, a 200 m de la UCAB, Montalbán, Caracas.",
+    contact: "0212-443-3153 · caritasvenezuela@gmail.com · IG @caritasdevzla",
+  },
+  {
+    name: "Protección Civil — Voluntariado formal",
+    desc: "Organismo oficial de gestión de desastres. Los grupos voluntarios requieren registro previo y formación (no es voluntariado espontáneo). Sede: Av. Principal de Bello Monte, Caracas.",
+    contact: "0800-7248451 (0800-PCIVIL1) · IG @pcivil_venezuela",
+  },
+  {
+    name: "PsicoLínea UCAB — Apoyo psicológico",
+    desc: "Línea gratuita y confidencial de primeros auxilios psicológicos de la Escuela de Psicología de la UCAB; útil para afectados y para psicólogos que quieran apoyar. Confirma el número y horario en psicologia.ucab.edu.ve antes de llamar.",
+    contact: "0414-1217882 / 0424-1723981 (confirmar)",
+  },
+  {
+    name: "Arquidiócesis de Caracas — Parroquias solidarias",
+    desc: "Llamado del arzobispo a activar redes de solidaridad. Centros en Parroquia El Buen Pastor (Bello Campo, Chacao), La Sagrada Familia (La Tahona) y Cáritas Nacional (Montalbán). Lleva donaciones o súmate.",
+    contact: "IG @arquidiocesisdecaracas",
+  },
+] as const;
+
+// Fuente: redayudavenezuela.com. Sin dirección puntual (solo redes sociales),
+// por eso van como tarjetas informativas y no como pines en el mapa.
+const PET_RESOURCES = [
+  {
+    name: "Fundación Rescate Garra & Pata",
+    desc: "Fundación de rescate, alimentación y adopción de perros y gatos en Caracas. Tras el sismo moviliza equipos de rescate.",
+    contact: "IG @fundrescategarraypata",
+  },
+  {
+    name: "Misión Nevado — atención veterinaria gratuita",
+    desc: "Programa estatal con más de 71 centros de atención veterinaria gratuita a nivel nacional, incluido el estado La Guaira.",
+    contact: "IG @misionnevadooficial",
+  },
+] as const;
+
+// Fuente: redayudavenezuela.com. Puntos de acopio fuera de Venezuela para
+// quienes quieren enviar insumos para mascotas desde la diáspora.
+const DIASPORA_PET_DROPOFFS = [
+  {
+    name: "Global Empowerment Mission (Doral, Florida)",
+    address: "1850 NW 84th Ave, Ste. 100, Doral, FL 33126, EE.UU. · Lun-vie 8 a.m.–5 p.m.",
+    desc: "Recibe comida de perros/gatos, correas y juguetes para enviar a Venezuela.",
+  },
+  {
+    name: "Alcaldía de Panamá — Edificio Hatillo",
+    address: "Planta baja, Edificio Hatillo, Ciudad de Panamá · 8 a.m.–4 p.m.",
+    desc: "Recibe alimento de perros/gatos para enviar a Venezuela.",
   },
 ] as const;
 
@@ -228,9 +290,11 @@ type Section = (typeof NAV)[number]["id"];
 
 export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const { reports, moderate, submit, verify } = useReports();
+  const externalPets = useExternalPets();
   const connectedUsers = usePresence();
   const { theme, toggleTheme } = useTheme();
   const [section, setSection] = useState<Section>("resumen");
+  const { volunteers: externalVolunteers, loading: loadingVolunteers } = useExternalVolunteers(section === "voluntariado");
   const [showReport, setShowReport] = useState(false);
   const [selected, setSelected] = useState<Report | null>(null);
   const [showFullMap, setShowFullMap] = useState(false);
@@ -301,7 +365,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   }
 
   const pending = useMemo(() => reports.filter((r) => r.status === "sin_verificar"), [reports]);
-  const selectedReport = selected ? reports.find((r) => r.id === selected.id) ?? selected : null;
+  const allReports = useMemo(() => [...reports, ...externalPets], [reports, externalPets]);
+  const selectedReport = selected ? allReports.find((r) => r.id === selected.id) ?? selected : null;
 
   const [reportFilter, setReportFilterRaw] = useState("todos");
   const [reportPage, setReportPage] = useState(1);
@@ -313,9 +378,9 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   };
   const filteredReports = useMemo(() => {
     const def = MAP_FILTERS.find((f) => f.id === reportFilter);
-    const byType = !def || def.types === "todos" ? reports : reports.filter((r) => (def.types as ReportType[]).includes(r.type));
+    const byType = !def || def.types === "todos" ? allReports : allReports.filter((r) => (def.types as ReportType[]).includes(r.type));
     return byType.toSorted((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [reports, reportFilter]);
+  }, [allReports, reportFilter]);
   const searchedReports = useMemo(() => {
     const q = reportSearch.trim().toLowerCase();
     if (!q) return filteredReports;
@@ -348,6 +413,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   // En la página pública, un reporte se "marca" con confirm/attended/incorrect (verify),
   // que es la verificación ciudadana, no una acción de moderador.
   function rowActions(r: Report) {
+    if (r.external) return {};
     return canModerate
       ? {
           onVerify: () => moderate(r, "verify"),
@@ -357,18 +423,19 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
       : {};
   }
 
-  const detailActions = selectedReport
-    ? canModerate
-      ? {
-          onVerify: () => moderate(selectedReport, "verify"),
-          onFalse: () => moderate(selectedReport, "false"),
-        }
-      : {
-          onVerify: () => verify(selectedReport, "confirm"),
-          onFalse: () => verify(selectedReport, "incorrect"),
-          onAttended: () => verify(selectedReport, "attended"),
-        }
-    : {};
+  const detailActions =
+    selectedReport && !selectedReport.external
+      ? canModerate
+        ? {
+            onVerify: () => moderate(selectedReport, "verify"),
+            onFalse: () => moderate(selectedReport, "false"),
+          }
+        : {
+            onVerify: () => verify(selectedReport, "confirm"),
+            onFalse: () => verify(selectedReport, "incorrect"),
+            onAttended: () => verify(selectedReport, "attended"),
+          }
+      : {};
 
   return (
     <div className="flex min-h-screen flex-col" style={{ background: "var(--bg)", color: "var(--fg)" }}>
@@ -708,6 +775,28 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 </button>
                 .
               </p>
+
+              <h2 className="mt-2 text-lg font-extrabold">🐾 Mascotas</h2>
+              <div className="flex flex-col gap-3">
+                {PET_RESOURCES.map((p) => (
+                  <div key={p.name} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <div className="font-bold">{p.name}</div>
+                    <div className="text-sm" style={{ color: "var(--fg-2)" }}>{p.desc}</div>
+                    <div className="mt-1 text-xs font-bold" style={{ color: "var(--muted)" }}>{p.contact}</div>
+                  </div>
+                ))}
+              </div>
+
+              <h2 className="mt-2 text-lg font-extrabold">✈️ Acopio para mascotas desde el exterior</h2>
+              <div className="flex flex-col gap-3">
+                {DIASPORA_PET_DROPOFFS.map((p) => (
+                  <div key={p.name} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <div className="font-bold">{p.name}</div>
+                    <div className="text-sm" style={{ color: "var(--fg-2)" }}>{p.desc}</div>
+                    <div className="mt-1 text-xs font-bold" style={{ color: "var(--muted)" }}>{p.address}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -723,6 +812,48 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
               <PhoneGroup title="🚨 Emergencias (línea directa)" entries={EMERGENCY_LINES} />
               <PhoneGroup title="🚑 Ambulancias" entries={AMBULANCES} />
               <PhoneGroup title="🚒 Bomberos" entries={FIREFIGHTERS} />
+            </div>
+          )}
+
+          {section === "voluntariado" && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                Organizaciones que reciben voluntarios para la respuesta al terremoto. Fuente:{" "}
+                <span className="font-bold">redayudavenezuela.com</span>.
+              </p>
+              {VOLUNTEER_ORGS.map((o) => (
+                <div key={o.name} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div className="font-bold">{o.name}</div>
+                  <div className="text-sm" style={{ color: "var(--fg-2)" }}>{o.desc}</div>
+                  <div className="mt-1 text-xs font-bold" style={{ color: "var(--muted)" }}>{o.contact}</div>
+                </div>
+              ))}
+
+              <h2 className="mt-2 text-lg font-extrabold">🙋 Voluntarios individuales (en vivo)</h2>
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                Personas que se ofrecieron directamente en redayudavenezuela.com. Esta lista se lee en vivo desde su
+                plataforma — si alguien deja de estar disponible allá, desaparece de aquí también.
+              </p>
+              {loadingVolunteers && (
+                <div className="rounded-2xl border p-4 text-center text-sm" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                  Cargando…
+                </div>
+              )}
+              {!loadingVolunteers && externalVolunteers.length === 0 && (
+                <div className="rounded-2xl border p-4 text-center text-sm" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                  No se pudo cargar la lista en este momento.
+                </div>
+              )}
+              {externalVolunteers.map((v) => (
+                <div key={v.id} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div className="font-bold">{v.title}</div>
+                  <div className="text-sm" style={{ color: "var(--fg-2)" }}>{v.description}</div>
+                  <div className="mt-1 flex flex-wrap gap-x-2 text-xs font-bold" style={{ color: "var(--muted)" }}>
+                    {[v.city, v.state].filter(Boolean).join(", ") || "Ubicación no especificada"}
+                    {v.contact ? ` · ${v.contact}` : ""}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -760,7 +891,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           report={selectedReport}
           onClose={() => setSelected(null)}
           moderator={canModerate}
-          onResolved={() => verify(selectedReport, "resolved")}
+          onResolved={selectedReport.external ? undefined : () => verify(selectedReport, "resolved")}
           {...detailActions}
         />
       )}
