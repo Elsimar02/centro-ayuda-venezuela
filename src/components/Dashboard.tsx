@@ -299,7 +299,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   </div>
                 ))}
               </div>
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-3">
                   <FilterChips value={reportFilter} onChange={setReportFilter} />
                   <div
@@ -522,7 +522,7 @@ function PhoneGroup({
       <div className="px-4 py-3 text-sm font-extrabold" style={{ borderBottom: "1px solid var(--border)" }}>
         {title}
       </div>
-      <div className="grid gap-3 p-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
         {entries.map((e) => (
           <div key={e.name} className="rounded-xl border p-3.5" style={{ borderColor: "var(--border-2)" }}>
             <div className="mb-2 text-sm font-bold">{e.name}</div>
@@ -551,7 +551,7 @@ function LinkCardGrid({
   items: readonly { id: string; name: string; icon: string; desc: string; url: string; cta: string }[];
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {items.map((item) => (
         <a
           key={item.id}
@@ -641,7 +641,7 @@ function Tutorial() {
 
       <div>
         <h2 className="mb-3 text-lg font-extrabold">Cómo funciona, paso a paso</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {TUTORIAL_STEPS.map((s) => (
             <div key={s.title} className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
               <Image src={s.img} alt={s.title} width={390} height={844} className="w-full" style={{ height: "auto" }} />
