@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
 import { usePresence } from "@/hooks/usePresence";
@@ -16,6 +17,7 @@ const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false }
 
 const NAV = [
   { id: "resumen", icon: "📊", label: "Resumen" },
+  { id: "tutorial", icon: "📖", label: "Tutorial" },
   { id: "reportes", icon: "📋", label: "Reportes" },
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
@@ -417,6 +419,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
               <PhoneGroup title="🚒 Bomberos" entries={FIREFIGHTERS} />
             </div>
           )}
+
+          {section === "tutorial" && <Tutorial />}
         </main>
       </div>
 
@@ -570,6 +574,94 @@ function LinkCardGrid({
           </span>
         </a>
       ))}
+    </div>
+  );
+}
+
+const TUTORIAL_STEPS = [
+  {
+    img: "/tutorial/01-resumen.png",
+    title: "1. Mira el resumen",
+    text: "Al entrar ves cuántos reportes hay, cuáles faltan por confirmar, y los más recientes. Es lo primero que ve cualquier persona.",
+  },
+  {
+    img: "/tutorial/02-mapa.png",
+    title: "2. Mira el mapa",
+    text: "Toca \"Mapa operativo\" para ver todos los reportes ubicados en Venezuela. Cada color es un tipo distinto de reporte. Puedes filtrar por categoría arriba.",
+  },
+  {
+    img: "/tutorial/03-elegir-tipo.png",
+    title: "3. Toca \"+ Reportar\"",
+    text: "Elige qué quieres reportar: una persona atrapada o desaparecida, un refugio, un hospital que necesita insumos, una mascota perdida, etc.",
+  },
+  {
+    img: "/tutorial/05-referencia.png",
+    title: "4. Di dónde fue",
+    text: "Tienes 3 opciones: usar tu ubicación GPS, escribir la dirección exacta, o si no la sabes, escribir una referencia (\"cerca de la plaza\") y marcar el lugar en un mapita.",
+  },
+  {
+    img: "/tutorial/06-detalles.png",
+    title: "5. Cuéntanos qué pasó",
+    text: "Completa los datos que te pide (cambian según el tipo de reporte) y agrega una foto si tienes una. Todo lo que no sepas, puedes dejarlo en blanco.",
+  },
+  {
+    img: "/tutorial/07-revisar.png",
+    title: "6. Revisa y envía",
+    text: "Confirma que todo esté bien y presiona \"Enviar reporte\". Listo — ya aparece en el mapa para que todos lo vean al instante.",
+  },
+  {
+    img: "/tutorial/08-verificar.png",
+    title: "7. Ayuda confirmando reportes",
+    text: "Toca cualquier reporte para ver sus detalles. Si sabes que es cierto, presiona \"Verificado\". Si ya fue atendido, \"Marcar atendido\". Si crees que es falso, \"Falso\". Cuando la situación ya se resolvió, presiona \"Ya está resuelto\" — cuando 8 personas confirman esto, el reporte se puede quitar del mapa.",
+  },
+] as const;
+
+function Tutorial() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+        <h2 className="mb-2 text-lg font-extrabold">¿Qué es esta plataforma?</h2>
+        <p className="text-sm leading-relaxed" style={{ color: "var(--fg-2)" }}>
+          Es un mapa hecho por ciudadanos para ayudar después de los terremotos en Venezuela. Cualquier
+          persona puede reportar y ver, en tiempo real: gente atrapada o desaparecida, vías bloqueadas,
+          hospitales y refugios, centros de acopio, y mascotas perdidas. No necesitas crear una cuenta ni
+          dar tus datos para usarla.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+        <h2 className="mb-2 text-lg font-extrabold">¿Para qué sirve?</h2>
+        <ul className="flex flex-col gap-1.5 text-sm leading-relaxed" style={{ color: "var(--fg-2)" }}>
+          <li>🆘 Pedir ayuda si tú o alguien cerca está en peligro</li>
+          <li>🟢 Avisar si encontraste a una persona o una mascota</li>
+          <li>💧 Decir dónde hay agua, comida, medicinas o un refugio</li>
+          <li>✓ Confirmar reportes de otras personas para que sean más confiables</li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-lg font-extrabold">Cómo funciona, paso a paso</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {TUTORIAL_STEPS.map((s) => (
+            <div key={s.title} className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <Image src={s.img} alt={s.title} width={390} height={844} className="w-full" style={{ height: "auto" }} />
+              <div className="p-4">
+                <div className="mb-1.5 font-extrabold">{s.title}</div>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--fg-2)" }}>{s.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+        <h2 className="mb-2 text-lg font-extrabold">Consejos</h2>
+        <ul className="flex flex-col gap-1.5 text-sm leading-relaxed" style={{ color: "var(--fg-2)" }}>
+          <li>No necesitas crear cuenta ni iniciar sesión para reportar.</li>
+          <li>Puedes reportar sin dar tu nombre. Si dejas un teléfono, otros podrán contactarte por esa vía.</li>
+          <li>Si no tienes internet en el momento, activa &quot;Modo offline&quot; antes de reportar — se enviará apenas vuelva la señal.</li>
+        </ul>
+      </div>
     </div>
   );
 }
