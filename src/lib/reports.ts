@@ -155,9 +155,16 @@ export async function verifyReport(
   let status = report.status;
   if (kind === "confirm") {
     confidence = Math.min(99, confidence + 6);
-    // 5+ confirmaciones ciudadanas verifican el reporte automáticamente,
-    // siempre que siga "sin verificar" (no pisar falso/en proceso/resuelto).
-    if (vc_confirm >= CONFIRM_THRESHOLD && status === "sin_verificar") status = "verificado";
+    // 5+ confirmaciones ciudadanas verifican el reporte automáticamente, pero
+    // solo si no está disputado: las confirmaciones deben ser al menos el doble
+    // de los reportes de "incorrecto". No pisa falso/en proceso/resuelto.
+    if (
+      vc_confirm >= CONFIRM_THRESHOLD &&
+      vc_confirm >= 2 * vc_incorrect &&
+      status === "sin_verificar"
+    ) {
+      status = "verificado";
+    }
   }
   if (kind === "attended") {
     confidence = Math.min(99, confidence + 3);
