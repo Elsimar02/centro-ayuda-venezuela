@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, DM_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="es" data-theme="dark" className={`${manrope.variable} ${dmMono.variable} h-full`}>
       <body className="min-h-full flex flex-col" style={{ fontFamily: "var(--font-manrope)" }}>
         <ThemeProvider>{children}</ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
