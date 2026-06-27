@@ -275,6 +275,10 @@ export const PEOPLE_COUNT_TYPES = new Set<ReportType>([
 // supabase/migration_4_resolved_threshold.sql).
 export const RESOLVE_THRESHOLD = 8;
 
+// Con esta cantidad de confirmaciones ciudadanas, un reporte aún "sin verificar"
+// pasa automáticamente a "Verificado" (verde).
+export const CONFIRM_THRESHOLD = 5;
+
 export type MapFilter = { id: string; label: string; emoji: string; types: ReportType[] | "todos" };
 
 export const MAP_FILTERS: MapFilter[] = [
