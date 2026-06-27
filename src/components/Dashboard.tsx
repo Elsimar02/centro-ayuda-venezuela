@@ -407,7 +407,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   >
                     🟢 Subir a estado de WhatsApp
                     <span className="text-[11px] font-normal" style={{ color: "var(--muted)" }}>
-                      Se abre el menú → elige WhatsApp → Mi estado
+                      A un amigo o grupos
                     </span>
                   </button>
                   <button
@@ -418,7 +418,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   >
                     📸 Subir a historia de Instagram
                     <span className="text-[11px] font-normal" style={{ color: "var(--muted)" }}>
-                      Se abre el menú → elige Instagram → Historia (el texto queda copiado)
+                      A un amigo o grupos
                     </span>
                   </button>
                   <button
