@@ -32,22 +32,6 @@ const NAV = [
 
 const COMM_GROUPS = [
   {
-    id: "whatsapp",
-    name: "WhatsApp",
-    icon: "🟢",
-    desc: "Coordinación en tiempo real entre voluntarios y reporteros.",
-    url: "https://chat.whatsapp.com/Kqqyyuq5vfmD5Aq879D4aQ?s=cl&p=i&mlu=0",
-    cta: "Unirse al grupo",
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    icon: "🔵",
-    desc: "Canal de difusión y respaldo del grupo de WhatsApp.",
-    url: "https://t.me/+Psx3v3u6WS1mODZh",
-    cta: "Unirse al canal",
-  },
-  {
     id: "venezuela-te-busca",
     name: "Venezuela Te Busca",
     icon: "🔎",
