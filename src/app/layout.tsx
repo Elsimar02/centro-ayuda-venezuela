@@ -16,7 +16,7 @@ const dmMono = DM_Mono({
   weight: ["400", "500"],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://centro-ayuda-venezuela-phi.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://centrocooperativovenezuela.com";
 const TITLE = "Centro de Coordinación Ciudadana";
 const DESCRIPTION =
   "Mapa en vivo para reportar y encontrar ayuda tras los sismos en Venezuela: personas, refugios, hospitales, agua, alimentos y centros de acopio. Gratis.";

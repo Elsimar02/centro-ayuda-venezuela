@@ -237,7 +237,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const [navOpen, setNavOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const appUrl = () => (typeof window !== "undefined" ? window.location.origin : "");
+  const appUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://centrocooperativovenezuela.com";
 
   // Texto humano para acompañar la imagen/enlace (incluye el link porque en un
   // estado o historia el enlace no es clicable: tiene que estar escrito).
@@ -246,7 +246,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
       "🇻🇪 Ayudémonos entre todos.\n\n" +
       "Después de los terremotos, cada reporte cuenta: alguien buscando a su familia, " +
       "un refugio con cupo, un hospital que necesita insumos, agua o comida.\n\n" +
-      "Si viste algo, repórtalo. Si necesitas ayuda, búscala en el mapa. Gratis, anónimo y en tiempo real.\n\n" +
+      "Si viste algo, repórtalo. Si necesitas ayuda, búscala en el mapa.\n\n" +
       "Reportar puede salvar una vida. Compartir, también 🙏\n" +
       `👉 ${appUrl()}`
     );
@@ -257,7 +257,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
     setShareOpen(false);
     const url = appUrl();
     const text =
-      "🇻🇪 Ayudémonos entre todos. Mapa ciudadano en vivo para reportar y encontrar ayuda tras los terremotos: personas, refugios, hospitales, agua y comida. Gratis y anónimo. Reportar puede salvar una vida 🙏";
+      "🇻🇪 Ayudémonos entre todos. Mapa ciudadano para reportar y encontrar ayuda tras los terremotos: personas, refugios, hospitales, agua y comida. Reportar puede salvar una vida 🙏";
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ title: "Centro de Coordinación Ciudadana", text, url });
