@@ -16,9 +16,30 @@ const dmMono = DM_Mono({
   weight: ["400", "500"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://centro-ayuda-venezuela.vercel.app";
+const TITLE = "Centro de Coordinación Ciudadana";
+const DESCRIPTION =
+  "Mapa en vivo para reportar y encontrar ayuda tras los sismos en Venezuela: personas, refugios, hospitales, agua, alimentos y centros de acopio. Gratis.";
+
 export const metadata: Metadata = {
-  title: "Centro de Coordinación Ciudadana",
-  description: "Venezuela · respuesta a emergencias",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    locale: "es_VE",
+    url: SITE_URL,
+    siteName: TITLE,
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [{ url: "/icon.png", width: 512, height: 512, alt: TITLE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/icon.png"],
+  },
 };
 
 export default function RootLayout({

@@ -236,6 +236,23 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const [showFullMap, setShowFullMap] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
 
+  // Compartir: usa el menú nativo del dispositivo (incluye WhatsApp) y, si no
+  // existe, abre WhatsApp directamente. Comparte la URL actual sin hardcodear.
+  async function shareApp() {
+    const url = typeof window !== "undefined" ? window.location.origin : "";
+    const text =
+      "🇻🇪 Centro de Coordinación Ciudadana — mapa en vivo para reportar y encontrar ayuda tras los sismos (personas, refugios, hospitales, agua, comida). Compártelo, puede salvar vidas:";
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: "Centro de Coordinación Ciudadana", text, url });
+        return;
+      } catch {
+        /* el usuario canceló */
+      }
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener");
+  }
+
   const pending = useMemo(() => reports.filter((r) => r.status === "sin_verificar"), [reports]);
   const selectedReport = selected ? reports.find((r) => r.id === selected.id) ?? selected : null;
 
@@ -316,6 +333,16 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
             style={{ background: "var(--accent)" }}
           >
             + Reportar
+          </button>
+          <button
+            type="button"
+            onClick={shareApp}
+            aria-label="Compartir"
+            title="Compartir"
+            className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold text-white"
+            style={{ background: "#16a34a" }}
+          >
+            🔗 <span className="hidden sm:inline">Compartir</span>
           </button>
           <button type="button" onClick={toggleTheme} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
             {theme === "dark" ? "☀️" : "🌙"}
