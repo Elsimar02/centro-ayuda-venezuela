@@ -12,7 +12,7 @@ import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
-import { CATS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
+import { CATS, HOSPITAL_LIST_DISCLAIMER, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { telLink } from "@/lib/contact";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
@@ -650,6 +650,14 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           {section === "reportes" && (
             <div className="flex flex-col gap-3">
               <FilterChips value={reportFilter} onChange={setReportFilter} />
+              {reportFilter === "lista_hospitales" && (
+                <div
+                  className="rounded-xl px-3.5 py-2.5 text-xs font-bold leading-relaxed"
+                  style={{ background: "rgba(124,58,237,.12)", border: "1px solid rgba(124,58,237,.3)", color: "#7c3aed" }}
+                >
+                  {HOSPITAL_LIST_DISCLAIMER}
+                </div>
+              )}
               <input
                 type="text"
                 value={reportSearch}

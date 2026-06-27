@@ -16,7 +16,8 @@ export type ReportType =
   | "electricidad"
   | "internet"
   | "mascota_perdida"
-  | "mascota_encontrada";
+  | "mascota_encontrada"
+  | "persona_lista_hospital";
 
 export type Urgency = "critica" | "alta" | "media" | "baja";
 
@@ -119,7 +120,14 @@ export const CATS: Record<ReportType, CatConfig> = {
   internet: { label: "Punto de wifi / carga de celular", emoji: "📶", color: "#6366f1" },
   mascota_perdida: { label: "Mascota perdida", emoji: "🐕", color: "#b45309" },
   mascota_encontrada: { label: "Mascota encontrada", emoji: "🐾", color: "#16a34a" },
+  persona_lista_hospital: { label: "Persona en lista hospitalaria", emoji: "🏨", color: "#7c3aed" },
 };
+
+// Aviso obligatorio para la sección de listas hospitalarias: estos nombres vienen de
+// listas de pacientes ingresados (no de un reporte familiar de desaparición), así que
+// debe quedar claro que es información sin confirmar y pedir ayuda para verificarla.
+export const HOSPITAL_LIST_DISCLAIMER =
+  "Esta lista recopila información de varias páginas y listas hospitalarias con el único fin de ayudar a las familias a encontrar a sus seres queridos. Es contenido delicado y sin confirmar: si conoces a alguna de estas personas, por favor ayúdanos a confirmar o desmentir su información.";
 
 export const PERSON_TYPES: ReportType[] = [
   "persona_desaparecida",
@@ -195,6 +203,12 @@ export const TYPE_FIELDS: Partial<Record<ReportType, FieldDef[]>> = {
     { key: "nombre_centro", label: "Nombre del hospital", placeholder: "Ej. Hospital de Pariata" },
     { key: "insumos", label: "Insumos que faltan", placeholder: "Ej. Insulina, gasas, sangre tipo O-" },
   ],
+  persona_lista_hospital: [
+    { key: "nombre", label: "Nombre de la persona", placeholder: "Nombre completo (si se conoce)" },
+    { key: "edad", label: "Edad aproximada", placeholder: "Ej. 45 años" },
+    { key: "hospital", label: "Hospital donde figura", placeholder: "Ej. Hospital Domingo Luciani" },
+    { key: "procedencia_diagnostico", label: "Procedencia / diagnóstico (si se conoce)", placeholder: "Ej. Procedencia La Guaira, traumatología" },
+  ],
   insumos_disponibles: [
     { key: "que_hay", label: "Qué hay disponible", placeholder: "Ej. Medicinas, gasas, suero" },
     { key: "cantidad", label: "Cantidad aproximada", placeholder: "Ej. 10 cajas" },
@@ -249,6 +263,7 @@ export const REPORT_PRIORITY: Record<ReportType, number> = {
   mascota_encontrada: 16,
   colapso: 17,
   bloqueo: 18,
+  persona_lista_hospital: 19,
 };
 
 // Types where urgency level is meaningful (actionable emergencies) vs. purely
@@ -288,13 +303,14 @@ export const MAP_FILTERS: MapFilter[] = [
   { id: "todos", label: "Todos", emoji: "◎", types: "todos" },
   { id: "personas", label: "Personas", emoji: "🔴", types: ["persona_desaparecida", "persona_encontrada_viva", "persona_fallecida"] },
   { id: "atrapada", label: "Atrapados", emoji: "🆘", types: ["atrapada", "colapso"] },
-  { id: "calles", label: "Vías", emoji: "🚧", types: ["bloqueo", "peligro"] },
   { id: "hospital", label: "Hospitales", emoji: "🏥", types: ["hospital", "hospital_insumos"] },
+  { id: "lista_hospitales", label: "Listas de hospitales", emoji: "🏨", types: ["persona_lista_hospital"] },
+  { id: "mascotas", label: "Mascotas", emoji: "🐾", types: ["mascota_perdida", "mascota_encontrada"] },
   { id: "refugio", label: "Refugios", emoji: "⛺", types: ["refugio", "ayuda"] },
+  { id: "medicinas", label: "Medicinas", emoji: "💊", types: ["insumos_disponibles"] },
   { id: "agua", label: "Agua", emoji: "💧", types: ["agua"] },
   { id: "comida", label: "Comida", emoji: "🍞", types: ["alimentos"] },
-  { id: "medicinas", label: "Medicinas", emoji: "💊", types: ["insumos_disponibles"] },
-  { id: "mascotas", label: "Mascotas", emoji: "🐾", types: ["mascota_perdida", "mascota_encontrada"] },
+  { id: "calles", label: "Vías", emoji: "🚧", types: ["bloqueo", "peligro"] },
 ];
 
 export const STATUS: Record<ReportStatus, { label: string; color: string }> = {
