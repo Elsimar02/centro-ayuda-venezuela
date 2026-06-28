@@ -632,18 +632,23 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 <div className="flex flex-col gap-3">
                   <FilterChips value={reportFilter} onChange={setReportFilter} />
                   <div
-                    className="relative overflow-hidden rounded-2xl border"
+                    className="relative isolate overflow-hidden rounded-2xl border"
                     style={{ borderColor: "var(--border)", background: "var(--surface)", minHeight: 420 }}
                   >
-                    <ReportMap
-                      reports={filteredReports}
-                      theme={theme}
-                      base="streets"
-                      center={[8, -66]}
-                      zoom={6}
-                      flyTarget={null}
-                      onSelect={setSelected}
-                    />
+                    {/* No montar este mapa mientras el mapa completo está abierto: evita
+                        que dos instancias de Leaflet/MarkerClusterGroup agrupen los mismos
+                        ~1900 reportes al mismo tiempo y congelen la pestaña. */}
+                    {!showFullMap && (
+                      <ReportMap
+                        reports={filteredReports}
+                        theme={theme}
+                        base="streets"
+                        center={[8, -66]}
+                        zoom={6}
+                        flyTarget={null}
+                        onSelect={setSelected}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => setShowFullMap(true)}
@@ -762,18 +767,20 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
             <div className="flex flex-col gap-3">
               <FilterChips value={reportFilter} onChange={setReportFilter} />
               <div
-                className="relative overflow-hidden rounded-2xl border"
+                className="relative isolate overflow-hidden rounded-2xl border"
                 style={{ borderColor: "var(--border)", background: "var(--surface)", height: "calc(100vh - 210px)" }}
               >
-                <ReportMap
-                  reports={filteredReports}
-                  theme={theme}
-                  base="streets"
-                  center={[8, -66]}
-                  zoom={6}
-                  flyTarget={null}
-                  onSelect={(r) => setSelected(r)}
-                />
+                {!showFullMap && (
+                  <ReportMap
+                    reports={filteredReports}
+                    theme={theme}
+                    base="streets"
+                    center={[8, -66]}
+                    zoom={6}
+                    flyTarget={null}
+                    onSelect={(r) => setSelected(r)}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => setShowFullMap(true)}
