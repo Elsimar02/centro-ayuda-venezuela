@@ -162,17 +162,20 @@ export type FieldDef = { key: string; label: string; placeholder: string };
 export const TYPE_FIELDS: Partial<Record<ReportType, FieldDef[]>> = {
   persona_desaparecida: [
     { key: "nombre", label: "Nombre de la persona", placeholder: "Nombre completo (si se conoce)" },
+    { key: "cedula", label: "Cédula (opcional)", placeholder: "Ej. V-12345678, solo si la conoces" },
     { key: "edad", label: "Edad aproximada", placeholder: "Ej. 65 años" },
     { key: "descripcion_fisica", label: "Descripción física / ropa", placeholder: "Ej. Camisa azul, contextura delgada" },
     { key: "ultima_vez_visto", label: "Última vez vista (fecha / zona)", placeholder: "Ej. Hoy 8am, cerca de la plaza" },
   ],
   persona_encontrada_viva: [
     { key: "nombre", label: "Nombre de la persona", placeholder: "Nombre completo (si se conoce)" },
+    { key: "cedula", label: "Cédula (opcional)", placeholder: "Ej. V-12345678, solo si la conoces" },
     { key: "estado_salud", label: "Estado de salud", placeholder: "Ej. Estable, con heridas leves" },
     { key: "trasladada_a", label: "¿Fue trasladada a algún lugar?", placeholder: "Ej. Hospital de Pariata" },
   ],
   persona_fallecida: [
     { key: "nombre", label: "Nombre (si se conoce)", placeholder: "Nombre completo" },
+    { key: "cedula", label: "Cédula (opcional)", placeholder: "Ej. V-12345678, solo si la conoces" },
     { key: "donde_encontrada", label: "Dónde fue encontrada", placeholder: "Ej. Bajo escombros, calle X" },
     { key: "autoridad_notificada", label: "¿Ya se notificó a una autoridad?", placeholder: "Ej. Protección Civil, bomberos" },
   ],

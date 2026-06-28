@@ -668,7 +668,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   setReportSearch(e.target.value);
                   setReportPage(1);
                 }}
-                placeholder="Buscar por lugar, nombre o descripción..."
+                placeholder="Buscar por nombre, cédula, lugar o descripción..."
                 className="h-10 w-full rounded-xl border px-3.5 text-sm outline-none"
                 style={{ borderColor: "var(--border)", background: "var(--surface)" }}
               />

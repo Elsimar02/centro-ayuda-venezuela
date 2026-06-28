@@ -20,6 +20,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<Report | null>(null);
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [offline, setOffline] = useState(false);
+  const [search, setSearch] = useState("");
 
   function toggleOffline() {
     if (offline) flushQueue();
@@ -28,11 +29,23 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
 
   const allReports = useMemo(() => [...reports, ...externalPets], [reports, externalPets]);
 
-  const filtered = useMemo(() => {
+  const byType = useMemo(() => {
     const def = MAP_FILTERS.find((f) => f.id === filter);
     if (!def || def.types === "todos") return allReports;
     return allReports.filter((r) => (def.types as ReportType[]).includes(r.type));
   }, [allReports, filter]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return byType;
+    return byType.filter((r) => {
+      const haystack = [r.place, r.description, ...Object.values(r.details ?? {})]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [byType, search]);
 
   return (
     <div className="fixed inset-0 z-50 flex min-h-screen flex-col" style={{ background: "var(--bg)", color: "var(--fg)" }}>
@@ -97,7 +110,18 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="absolute left-0 right-0 top-14 z-20 flex gap-2 overflow-x-auto px-3 pb-1">
+        <div className="absolute left-3 right-3 top-12 z-20">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre, cédula o lugar..."
+            className="h-9 w-full rounded-lg border px-3 text-xs font-semibold outline-none"
+            style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--fg)" }}
+          />
+        </div>
+
+        <div className="absolute left-0 right-0 top-24 z-20 flex gap-2 overflow-x-auto px-3 pb-1">
           {MAP_FILTERS.map((f) => (
             <button type="button"
               key={f.id}
@@ -161,7 +185,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
 function StatusBanner({ text, tone = "muted" }: { text: string; tone?: "muted" | "error" | "warning" }) {
   return (
     <div
-      className="absolute left-3 right-3 top-28 z-20 rounded-xl px-3.5 py-2.5 text-center text-xs font-bold"
+      className="absolute left-3 right-3 top-36 z-20 rounded-xl px-3.5 py-2.5 text-center text-xs font-bold"
       style={
         tone === "error"
           ? { background: "rgba(220,38,38,.12)", border: "1px solid rgba(220,38,38,.3)", color: "#dc2626" }
