@@ -164,6 +164,20 @@ const EMERGENCY_LINES = [
   { name: "Movistar", phones: ["911"] },
 ] as const;
 
+// Números de emergencia a nivel nacional (no por operadora) — se muestran
+// fijos en el sidebar, visibles sin importar la sección activa.
+const NATIONAL_EMERGENCY_NUMBERS = [
+  { number: "911", label: "Emergencia nacional", tone: "primary" as const },
+  { number: "166", label: "Protección Civil", tone: "default" as const },
+  { number: "167", label: "Bomberos", tone: "default" as const },
+] as const;
+
+const PROTECCION_CIVIL_REPORTE = {
+  title: "Protección Civil — reporte nacional",
+  desc: "Línea gratuita para reportar daños estructurales, derrumbes o solicitar inspección.",
+  phone: "0800-7248451",
+};
+
 const AMBULANCES = [
   { name: "Aeroambulancias", phones: ["(0212) 993.25.41", "(0212) 992.89.80", "(0212) 992.89.90", "(0212) 991.79.40"] },
   { name: "Rescarven", phones: ["(0212) 993.69.11", "(0212) 993.69.91", "(0212) 993.13.10", "(0212) 993.33.67"] },
@@ -658,6 +672,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                       ⛶ Ver mapa completo
                     </button>
                   </div>
+                  <NationalEmergencyBlock />
                 </div>
                 <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                   <div className="px-4 py-3 text-sm font-extrabold" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -978,6 +993,63 @@ function NavList({
         </button>
       ))}
     </>
+  );
+}
+
+function NationalEmergencyBlock() {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+      <div>
+        <div className="text-sm font-extrabold" style={{ color: "var(--fg)" }}>🚨 Emergencias nacionales</div>
+        <p className="mt-0.5 text-xs leading-snug" style={{ color: "var(--muted)" }}>
+          Si hay una persona en peligro ahora, llama. Toca el número para marcar.
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2.5">
+        {NATIONAL_EMERGENCY_NUMBERS.map((n) => (
+          <a
+            key={n.number}
+            href={telLink(n.number)}
+            className={`flex flex-col items-center justify-center rounded-xl px-2 py-3 text-center font-extrabold ${
+              n.tone === "primary" ? "text-white" : ""
+            }`}
+            style={
+              n.tone === "primary"
+                ? { background: "#dc2626" }
+                : { background: "var(--surface-2)", color: "var(--fg)" }
+            }
+          >
+            <span className="text-lg">{n.number}</span>
+            <span className="text-[11px] font-bold leading-tight">{n.label}</span>
+          </a>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-extrabold leading-tight" style={{ color: "var(--fg)" }}>
+              {PROTECCION_CIVIL_REPORTE.title}
+            </span>
+            <span
+              className="flex-shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
+              OFICIAL
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
+            {PROTECCION_CIVIL_REPORTE.desc}
+          </p>
+        </div>
+        <a
+          href={telLink(PROTECCION_CIVIL_REPORTE.phone)}
+          className="flex-shrink-0 rounded-lg px-3 py-2 text-center text-xs font-extrabold text-white"
+          style={{ background: "#dc2626" }}
+        >
+          {PROTECCION_CIVIL_REPORTE.phone}
+        </a>
+      </div>
+    </div>
   );
 }
 
