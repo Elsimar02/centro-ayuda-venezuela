@@ -7,14 +7,13 @@ type ThemeCtx = { theme: Theme; toggleTheme: () => void };
 
 const ThemeContext = createContext<ThemeCtx | null>(null);
 
-function initialTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  const stored = window.localStorage.getItem("ccc-theme");
-  return stored === "light" || stored === "dark" ? stored : "dark";
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const [theme, setTheme] = useState<Theme>("dark");
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("ccc-theme");
+    if (stored === "light" || stored === "dark") setTheme(stored);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
