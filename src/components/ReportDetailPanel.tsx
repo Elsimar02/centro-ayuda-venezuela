@@ -7,6 +7,7 @@ import { telLink, waLink } from "@/lib/contact";
 import { ReportUpdates } from "@/components/ReportUpdates";
 import { findPossibleMatches } from "@/lib/matching";
 import { useLanguage } from "@/lib/i18n";
+import { useFollows } from "@/hooks/useFollows";
 
 export function ReportDetailPanel({
   report,
@@ -33,6 +34,8 @@ export function ReportDetailPanel({
 }) {
   const matches = useMemo(() => findPossibleMatches(report, allReports), [report, allReports]);
   const { t, tSplit, catLabel, statusLabel, urgLabel, fieldLabel, timeAgo } = useLanguage();
+  const { toggle: toggleFollow, isFollowing } = useFollows();
+  const following = isFollowing(report.id);
   const cat = CATS[report.type];
   const st = STATUS[report.status];
   const fields = TYPE_FIELDS[report.type] || [];
@@ -101,6 +104,24 @@ export function ReportDetailPanel({
             {showUrgency && <Badge color={URG[report.urgency].color}>{t("detail.urgency", { label: urgLabel(report.urgency) })}</Badge>}
             {showPeople && <Badge color="var(--muted)">{t("detail.peopleAffected", { n: report.people })}</Badge>}
           </div>
+
+          <button
+            type="button"
+            onClick={() => toggleFollow(report)}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-bold"
+            style={
+              following
+                ? { borderColor: "var(--accent)", background: "var(--accent-soft)", color: "var(--accent)" }
+                : { borderColor: "var(--border)", color: "var(--fg)" }
+            }
+          >
+            {following ? `★ ${t("follow.following")}` : `☆ ${t("follow.follow")}`}
+          </button>
+          {!following && (
+            <p className="-mt-2 text-xs" style={{ color: "var(--muted)" }}>
+              {t("follow.hint")}
+            </p>
+          )}
 
           <Section title={t("detail.description")}>
             <p className="text-base font-semibold leading-snug" style={{ color: "var(--fg)" }}>
