@@ -4,17 +4,12 @@ import { useState } from "react";
 import { useReportUpdates } from "@/hooks/useReportUpdates";
 import { NewUpdate, ReportUpdate, UPDATE_KINDS, UpdateKind } from "@/lib/types";
 import { telLink, waLink } from "@/lib/contact";
-
-function timeAgo(createdAt: string) {
-  const m = Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000));
-  if (m <= 0) return "ahora";
-  if (m < 60) return `hace ${m} min`;
-  return `hace ${Math.round(m / 60)} h`;
-}
+import { useLanguage } from "@/lib/i18n";
 
 const ORDER: UpdateKind[] = ["confirmacion", "en_camino", "trabajando", "localizada", "resuelto", "info"];
 
 export function ReportUpdates({ reportId }: { reportId: string }) {
+  const { t, updateLabel, updateHint } = useLanguage();
   const { updates, loading, add } = useReportUpdates(reportId);
   const [kind, setKind] = useState<UpdateKind>("confirmacion");
   const [message, setMessage] = useState("");
@@ -33,7 +28,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
       setPhone("");
       setKind("confirmacion");
     } catch {
-      setError("No se pudo enviar tu actualización. Intenta de nuevo.");
+      setError(t("updates.error"));
     } finally {
       setSending(false);
     }
@@ -42,7 +37,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
   return (
     <div className="flex flex-col gap-3 border-t pt-4" style={{ borderColor: "var(--border)" }}>
       <div className="text-sm font-extrabold">
-        Actualizaciones en vivo
+        {t("updates.title")}
         {updates.length > 0 && (
           <span className="ml-1.5 text-xs font-bold" style={{ color: "var(--muted)" }}>
             · {updates.length}
@@ -52,10 +47,10 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
 
       {/* Timeline */}
       {loading ? (
-        <div className="text-xs" style={{ color: "var(--muted)" }}>Cargando actualizaciones…</div>
+        <div className="text-xs" style={{ color: "var(--muted)" }}>{t("updates.loading")}</div>
       ) : updates.length === 0 ? (
         <div className="text-xs" style={{ color: "var(--muted)" }}>
-          Todavía no hay actualizaciones. Sé el primero en confirmar o aportar información.
+          {t("updates.empty")}
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">
@@ -67,7 +62,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
 
       {/* Formulario */}
       <div className="mt-1 flex flex-col gap-2.5 rounded-2xl border p-3.5" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-        <div className="text-xs font-bold" style={{ color: "var(--fg-2)" }}>Aportar una actualización</div>
+        <div className="text-xs font-bold" style={{ color: "var(--fg-2)" }}>{t("updates.formTitle")}</div>
 
         <div className="flex flex-wrap gap-1.5">
           {ORDER.map((k) => {
@@ -78,7 +73,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
                 key={k}
                 type="button"
                 onClick={() => setKind(k)}
-                title={cfg.hint}
+                title={updateHint(k)}
                 className="rounded-full border px-2.5 py-1 text-[11px] font-bold"
                 style={{
                   background: active ? cfg.color : "var(--surface)",
@@ -86,22 +81,22 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
                   borderColor: active ? cfg.color : "var(--border)",
                 }}
               >
-                {cfg.emoji} {cfg.label}
+                {cfg.emoji} {updateLabel(k)}
               </button>
             );
           })}
         </div>
 
-        <p className="text-[11px]" style={{ color: "var(--muted)" }}>{UPDATE_KINDS[kind].hint}</p>
+        <p className="text-[11px]" style={{ color: "var(--muted)" }}>{updateHint(kind)}</p>
 
         <textarea
           value={message}
-          aria-label="Detalle de la actualización"
+          aria-label={t("updates.messageAria")}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={
             kind === "localizada"
-              ? "Ej. La encontré, está en el refugio de la escuela. Pueden contactarme."
-              : "Escribe un detalle (opcional)"
+              ? t("updates.messagePlaceholder.localizada")
+              : t("updates.messagePlaceholder.default")
           }
           className="h-20 w-full resize-none rounded-xl border p-2.5 text-sm outline-none"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
@@ -109,23 +104,23 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
 
         <input
           value={name}
-          aria-label="Tu nombre"
+          aria-label={t("updates.nameAria")}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Tu nombre (opcional)"
+          placeholder={t("updates.namePlaceholder")}
           className="h-11 w-full rounded-xl border px-3 text-sm outline-none"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         />
         <input
           value={phone}
-          aria-label="Tu teléfono"
+          aria-label={t("updates.phoneAria")}
           onChange={(e) => setPhone(e.target.value)}
           inputMode="tel"
-          placeholder="Tu teléfono (opcional)"
+          placeholder={t("updates.phonePlaceholder")}
           className="h-11 w-full rounded-xl border px-3 text-sm outline-none"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         />
         <p className="text-[11px]" style={{ color: "var(--muted)" }}>
-          🔒 El teléfono es opcional. Si lo dejas, será visible en el reporte para que puedan contactarte (por ejemplo, un familiar).
+          {t("updates.phoneNote")}
         </p>
 
         {error && <p className="text-xs font-bold" style={{ color: "#dc2626" }}>{error}</p>}
@@ -137,7 +132,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
           className="h-11 rounded-xl text-sm font-extrabold text-white disabled:opacity-50"
           style={{ background: "var(--accent)" }}
         >
-          {sending ? "Enviando…" : "Publicar actualización"}
+          {sending ? t("updates.submitting") : t("updates.submit")}
         </button>
       </div>
     </div>
@@ -145,6 +140,7 @@ export function ReportUpdates({ reportId }: { reportId: string }) {
 }
 
 function UpdateItem({ update }: { update: ReportUpdate }) {
+  const { t, updateLabel, timeAgo } = useLanguage();
   const cfg = UPDATE_KINDS[update.kind];
   const wa = update.author_phone ? waLink(update.author_phone) : null;
   return (
@@ -154,7 +150,7 @@ function UpdateItem({ update }: { update: ReportUpdate }) {
           className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold"
           style={{ background: `${cfg.color}22`, color: cfg.color }}
         >
-          {cfg.emoji} {cfg.label}
+          {cfg.emoji} {updateLabel(update.kind)}
         </span>
         <span className="text-[11px]" style={{ color: "var(--muted)" }}>{timeAgo(update.created_at)}</span>
       </div>
@@ -175,7 +171,7 @@ function UpdateItem({ update }: { update: ReportUpdate }) {
                 className="inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[11px] font-bold text-white"
                 style={{ background: "#16a34a" }}
               >
-                🟢 WhatsApp
+                {t("contact.whatsapp")}
               </a>
             )}
             <a
@@ -183,7 +179,7 @@ function UpdateItem({ update }: { update: ReportUpdate }) {
               className="inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-bold"
               style={{ borderColor: "var(--border)", color: "var(--fg)" }}
             >
-              📞 Llamar
+              {t("contact.call")}
             </a>
           </>
         )}

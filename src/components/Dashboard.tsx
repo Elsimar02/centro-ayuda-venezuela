@@ -8,12 +8,14 @@ import { useExternalPets } from "@/hooks/useExternalPets";
 import { useExternalVolunteers } from "@/hooks/useExternalVolunteers";
 import { usePresence } from "@/hooks/usePresence";
 import { useTheme } from "@/lib/theme";
+import { useLanguage } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
 import { SeismicActivity } from "@/components/SeismicActivity";
-import { CATS, FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
+import { FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { telLink } from "@/lib/contact";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
@@ -292,6 +294,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const externalPets = useExternalPets();
   const connectedUsers = usePresence();
   const { theme, toggleTheme } = useTheme();
+  const { t, catLabel } = useLanguage();
   const [section, setSection] = useState<Section>("resumen");
   const { volunteers: externalVolunteers, loading: loadingVolunteers } = useExternalVolunteers(section === "voluntariado");
   const [showReport, setShowReport] = useState(false);
@@ -382,12 +385,12 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
     const q = reportSearch.trim().toLowerCase();
     if (!q) return filteredReports;
     return filteredReports.filter((r) => {
-      const haystack = [r.place, r.description, r.reporter_name, CATS[r.type]?.label, ...Object.values(r.details ?? {})]
+      const haystack = [r.place, r.description, r.reporter_name, catLabel(r.type), ...Object.values(r.details ?? {})]
         .join(" ")
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [filteredReports, reportSearch]);
+  }, [filteredReports, reportSearch, catLabel]);
   const recentReports = useMemo(
     () => reports.toSorted((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8),
     [reports]
@@ -525,6 +528,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           <button type="button" onClick={toggleTheme} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -543,7 +547,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
             }}
           >
             <span>{n.icon}</span>
-            {n.label}
+            {t(`nav.${n.id}`)}
             {n.id === "reportes" && pending.length > 0 && (
               <span
                 className="rounded-md px-1.5 py-0.5 text-[10px]"
@@ -944,6 +948,7 @@ function NavList({
   pending: number;
   onSelect: (id: Section) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <>
       {NAV.map((n) => (
@@ -957,7 +962,7 @@ function NavList({
           }}
         >
           <span className="w-5 text-center">{n.icon}</span>
-          {n.label}
+          {t(`nav.${n.id}`)}
           {n.id === "reportes" && pending > 0 && (
             <span className="ml-auto rounded-md px-1.5 py-0.5 text-[10px] text-white" style={{ background: "var(--accent)" }}>
               {pending}
@@ -970,6 +975,7 @@ function NavList({
 }
 
 function FilterChips({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const { mapFilterLabel } = useLanguage();
   return (
     <div className="flex gap-2 overflow-x-auto pb-1" onClick={(e) => e.stopPropagation()}>
       {MAP_FILTERS.map((f) => (
@@ -985,7 +991,7 @@ function FilterChips({ value, onChange }: { value: string; onChange: (id: string
           }}
         >
           <span>{f.emoji}</span>
-          {f.label}
+          {mapFilterLabel(f.id)}
         </button>
       ))}
     </div>

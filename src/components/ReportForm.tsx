@@ -20,10 +20,7 @@ import {
   Urgency,
   freshDraft,
 } from "@/lib/types";
-
-const PERSON_CARD = { label: "Persona (desaparecida, localizada o fallecida)", emoji: "🧍" };
-const PET_CARD = { label: "Mascota (perdida o encontrada)", emoji: "🐾" };
-const HELP_CARD = { label: "Centro de ayuda (agua, alimentos, insumos)", emoji: "🤝" };
+import { useLanguage } from "@/lib/i18n";
 
 const PERSON_PRIORITY = Math.min(...PERSON_TYPES.map((t) => REPORT_PRIORITY[t]));
 const PET_PRIORITY = Math.min(...PET_TYPES.map((t) => REPORT_PRIORITY[t]));
@@ -35,8 +32,6 @@ import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const RadiusPicker = dynamic(() => import("@/components/RadiusPicker"), { ssr: false });
 
-const STEPS = ["¿Qué ocurre?", "Ubicación", "Detalles", "Urgencia", "Revisar y enviar"];
-
 export function ReportForm({
   onSubmit,
   onClose,
@@ -44,6 +39,12 @@ export function ReportForm({
   onSubmit: (draft: Draft) => Promise<{ id: string }>;
   onClose: () => void;
 }) {
+  const { t, catLabel, urgLabel, urgHint, personStatusLabel, petStatusLabel, helpServiceLabel, fieldLabel, fieldPlaceholder } = useLanguage();
+  const STEPS = [t("form.steps.0"), t("form.steps.1"), t("form.steps.2"), t("form.steps.3"), t("form.steps.4")];
+  const PERSON_CARD = { label: t("form.cards.persona"), emoji: "🧍" };
+  const PET_CARD = { label: t("form.cards.mascota"), emoji: "🐾" };
+  const HELP_CARD = { label: t("form.cards.ayuda"), emoji: "🤝" };
+
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(() => freshDraft());
   const [uploading, setUploading] = useState(false);
@@ -81,7 +82,7 @@ export function ReportForm({
       const created = await onSubmit(finalDraft);
       setSentId(created.id);
     } catch {
-      setError("No se pudo enviar el reporte. Intenta de nuevo.");
+      setError(t("form.error.submit"));
     }
   }
 
@@ -91,7 +92,7 @@ export function ReportForm({
       const url = await uploadPhoto(file);
       setDraft((d) => ({ ...d, media: [...d.media, { kind: "foto", url }] }));
     } catch {
-      setError("No se pudo subir la foto.");
+      setError(t("form.error.photo"));
     } finally {
       setUploading(false);
     }
@@ -102,16 +103,16 @@ export function ReportForm({
       <Modal>
         <div className="flex flex-col items-center gap-3 p-8 text-center">
           <div className="text-4xl">✓</div>
-          <h2 className="text-lg font-extrabold">Reporte enviado</h2>
+          <h2 className="text-lg font-extrabold">{t("form.sent.title")}</h2>
           <p className="text-sm" style={{ color: "var(--muted)" }}>
-            Folio {sentId}. Gracias por colaborar.
+            {t("form.sent.body", { id: sentId })}
           </p>
           <button type="button"
             onClick={onClose}
             className="mt-3 h-11 rounded-xl px-5 font-bold text-white"
             style={{ background: "var(--accent)" }}
           >
-            Ver en el mapa
+            {t("form.sent.viewMap")}
           </button>
         </div>
       </Modal>
@@ -121,9 +122,9 @@ export function ReportForm({
   return (
     <Modal>
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-        <button type="button" onClick={back} className="text-xl" aria-label="Atrás">‹</button>
-        <h2 className="font-extrabold">Nuevo reporte</h2>
-        <button type="button" onClick={onClose} className="text-xl" aria-label="Cerrar">×</button>
+        <button type="button" onClick={back} className="text-xl" aria-label={t("form.back")}>‹</button>
+        <h2 className="font-extrabold">{t("form.title")}</h2>
+        <button type="button" onClick={onClose} className="text-xl" aria-label={t("common.close")}>×</button>
       </div>
       <div className="px-5 pt-3">
         <div className="flex gap-1.5">
@@ -136,7 +137,7 @@ export function ReportForm({
           ))}
         </div>
         <div className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
-          Paso {step + 1} de 5 · {STEPS[step]}
+          {t("form.step", { n: step + 1, label: STEPS[step] })}
         </div>
       </div>
 
@@ -179,7 +180,7 @@ export function ReportForm({
                   .map(([id, c]) => ({
                     key: id,
                     emoji: c.emoji,
-                    label: c.label,
+                    label: catLabel(id as ReportType),
                     priority: REPORT_PRIORITY[id as ReportType],
                     onPick: () => setDraft((d) => ({ ...d, type: id as ReportType })),
                     isActive: (t: ReportType | null) => t === id,
@@ -215,7 +216,7 @@ export function ReportForm({
             {draft.type && PERSON_TYPES.includes(draft.type) && (
               <div>
                 <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                  Estado de la persona
+                  {t("form.personStatusLabel")}
                 </div>
                 <div className="flex flex-col gap-2">
                   {PERSON_STATUS_OPTIONS.map((opt) => (
@@ -229,7 +230,7 @@ export function ReportForm({
                       }}
                     >
                       <span className="text-lg">{opt.emoji}</span>
-                      <span className="text-sm font-bold">{opt.label}</span>
+                      <span className="text-sm font-bold">{personStatusLabel(opt.type)}</span>
                     </button>
                   ))}
                 </div>
@@ -239,7 +240,7 @@ export function ReportForm({
             {draft.type && PET_TYPES.includes(draft.type) && (
               <div>
                 <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                  Estado de la mascota
+                  {t("form.petStatusLabel")}
                 </div>
                 <div className="flex flex-col gap-2">
                   {PET_STATUS_OPTIONS.map((opt) => (
@@ -253,7 +254,7 @@ export function ReportForm({
                       }}
                     >
                       <span className="text-lg">{opt.emoji}</span>
-                      <span className="text-sm font-bold">{opt.label}</span>
+                      <span className="text-sm font-bold">{petStatusLabel(opt.type)}</span>
                     </button>
                   ))}
                 </div>
@@ -263,7 +264,7 @@ export function ReportForm({
             {draft.type && HELP_TYPES.includes(draft.type) && (
               <div>
                 <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                  ¿Qué hay disponible?
+                  {t("form.helpAvailableLabel")}
                 </div>
                 <div className="flex flex-col gap-2">
                   {HELP_SERVICE_OPTIONS.map((opt) => {
@@ -286,7 +287,7 @@ export function ReportForm({
                         }}
                       >
                         <span className="text-lg">{opt.emoji}</span>
-                        <span className="text-sm font-bold">{opt.label}</span>
+                        <span className="text-sm font-bold">{helpServiceLabel(opt.key)}</span>
                       </button>
                     );
                   })}
@@ -297,8 +298,8 @@ export function ReportForm({
             {extraFields.map((f) => (
               <Field
                 key={f.key}
-                label={f.label}
-                placeholder={f.placeholder}
+                label={draft.type ? fieldLabel(draft.type, f.key) : f.label}
+                placeholder={draft.type ? fieldPlaceholder(draft.type, f.key) : f.placeholder}
                 value={draft.extra[f.key] || ""}
                 onChange={(v) => setDraft((d) => ({ ...d, extra: { ...d.extra, [f.key]: v } }))}
               />
@@ -306,27 +307,25 @@ export function ReportForm({
 
             <div>
               <div className="mb-1.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                Describe la situación
+                {t("form.describeLabel")}
               </div>
               <textarea
                 value={draft.desc}
-                aria-label="Describe la situación"
+                aria-label={t("form.describeLabel")}
                 onChange={(e) => setDraft((d) => ({ ...d, desc: e.target.value }))}
-                placeholder="Ej. Hay personas atrapadas bajo escombros en una vivienda de 2 pisos."
+                placeholder={t("form.describePlaceholder")}
                 className="h-28 w-full resize-none rounded-2xl border p-3 text-sm outline-none"
                 style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
               />
               <div className="mt-1.5 text-xs font-bold" style={{ color: hasEnoughDetail ? "var(--muted)" : "#dc2626" }}>
-                {hasEnoughDetail
-                  ? "Gracias por el detalle, esto ayuda a quien responda."
-                  : "Cuenta un poco más (mínimo 15 caracteres) para que el reporte sea útil."}
+                {hasEnoughDetail ? t("form.describeOk") : t("form.describeShort")}
               </div>
             </div>
 
             {showPeople && (
               <div>
                 <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                  Personas afectadas (aprox.)
+                  {t("form.peopleLabel")}
                 </div>
                 <div className="flex items-center gap-3">
                   <button type="button"
@@ -350,7 +349,7 @@ export function ReportForm({
 
             <div>
               <div className="mb-2 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                Adjuntar foto (opcional)
+                {t("form.photoLabel")}
               </div>
               <label
                 className="flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border border-dashed p-4 text-xs font-bold"
@@ -358,14 +357,14 @@ export function ReportForm({
               >
                 <input
                   type="file"
-                  aria-label="Adjuntar foto"
+                  aria-label={t("form.photoAria")}
                   accept="image/*"
                   disabled={uploading}
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && handlePhoto(e.target.files[0])}
                 />
                 <span className="text-xl">📷</span>
-                {uploading ? "Subiendo…" : "Foto"}
+                {uploading ? t("form.photoUploading") : t("form.photoTag")}
               </label>
               {draft.media.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -375,7 +374,7 @@ export function ReportForm({
                       className="rounded-lg px-2.5 py-1 text-xs font-bold"
                       style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                     >
-                      📷 Foto
+                      {t("form.photoChip")}
                     </span>
                   ))}
                 </div>
@@ -389,7 +388,7 @@ export function ReportForm({
             {showUrgency && (
               <div>
                 <div className="mb-2.5 block text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                  Nivel de urgencia
+                  {t("form.urgencyLabel")}
                 </div>
                 <div className="flex flex-col gap-2">
                   {(Object.entries(URG) as [Urgency, typeof URG[Urgency]][]).map(([id, u]) => (
@@ -404,16 +403,16 @@ export function ReportForm({
                     >
                       <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full" style={{ background: u.color }} />
                       <span className="flex-1">
-                        <span className="block text-sm font-extrabold">{u.label}</span>
-                        <span className="block text-xs" style={{ color: "var(--muted)" }}>{u.hint}</span>
+                        <span className="block text-sm font-extrabold">{urgLabel(id)}</span>
+                        <span className="block text-xs" style={{ color: "var(--muted)" }}>{urgHint(id)}</span>
                       </span>
                     </button>
                   ))}
                 </div>
               </div>
             )}
-            <Field label="Tu nombre (opcional)" placeholder="Tu nombre" value={draft.name} onChange={(v) => setDraft((d) => ({ ...d, name: v }))} />
-            <Field label="Teléfono de contacto (opcional)" placeholder="Teléfono" value={draft.phone} onChange={(v) => setDraft((d) => ({ ...d, phone: v }))} />
+            <Field label={t("form.nameLabel")} placeholder={t("form.namePlaceholder")} value={draft.name} onChange={(v) => setDraft((d) => ({ ...d, name: v }))} />
+            <Field label={t("form.phoneLabel")} placeholder={t("form.phonePlaceholder")} value={draft.phone} onChange={(v) => setDraft((d) => ({ ...d, phone: v }))} />
           </div>
         )}
 
@@ -422,15 +421,15 @@ export function ReportForm({
             <div className="flex items-center gap-3 p-4" style={{ borderBottom: "1px solid var(--border-2)" }}>
               <span className="text-2xl">{cat?.emoji || "📍"}</span>
               <div>
-                <div className="font-extrabold">{cat?.label || "Incidente"}</div>
+                <div className="font-extrabold">{draft.type ? catLabel(draft.type) : t("form.review.defaultCategory")}</div>
                 <div className="text-xs" style={{ color: "var(--muted)" }}>
-                  {showUrgency ? URG[draft.urgency].label : "Informativo"}
-                  {showPeople ? ` · ${draft.people} persona(s)` : ""}
+                  {showUrgency ? urgLabel(draft.urgency) : t("form.review.informative")}
+                  {showPeople ? t("form.review.peopleCount", { n: draft.people }) : ""}
                 </div>
               </div>
             </div>
             <div className="p-4 text-sm" style={{ color: "var(--fg-2)", borderBottom: "1px solid var(--border-2)" }}>
-              {draft.desc || "(Sin descripción)"}
+              {draft.desc || t("form.review.noDescription")}
             </div>
             <div className="p-4 text-xs" style={{ color: "var(--muted)" }}>
               📍{" "}
@@ -439,8 +438,8 @@ export function ReportForm({
                 : draft.loc === "referencia" && draft.reference
                 ? draft.reference
                 : draft.gpsCoords
-                ? `Tu ubicación GPS · ${draft.gpsPlace || `${draft.gpsCoords.lat.toFixed(4)}, ${draft.gpsCoords.lng.toFixed(4)}`}`
-                : "Ubicación no especificada"}
+                ? t("form.review.gpsLocation", { place: draft.gpsPlace || `${draft.gpsCoords.lat.toFixed(4)}, ${draft.gpsCoords.lng.toFixed(4)}` })
+                : t("form.review.locationUnknown")}
             </div>
           </div>
         )}
@@ -455,17 +454,12 @@ export function ReportForm({
           className="h-12 flex-1 rounded-2xl font-extrabold text-white disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {step < 4 ? "Continuar" : "Enviar reporte"}
+          {step < 4 ? t("form.continue") : t("form.submit")}
         </button>
       </div>
     </Modal>
   );
 }
-
-const LOCATION_OPTIONS: { id: Draft["loc"]; icon: string; title: string; subtitle: string }[] = [
-  { id: "manual", icon: "✏️", title: "Ingresar dirección", subtitle: "Sé la calle, barrio o avenida exacta" },
-  { id: "referencia", icon: "📌", title: 'No sé la dirección, doy una referencia', subtitle: 'Ej. "cerca de", "al lado de"' },
-];
 
 async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
   try {
@@ -481,6 +475,11 @@ async function reverseGeocode(lat: number, lng: number): Promise<string | null> 
 }
 
 function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispatch<React.SetStateAction<Draft>> }) {
+  const { t } = useLanguage();
+  const LOCATION_OPTIONS: { id: Draft["loc"]; icon: string; title: string; subtitle: string }[] = [
+    { id: "manual", icon: "✏️", title: t("form.location.manual.title"), subtitle: t("form.location.manual.subtitle") },
+    { id: "referencia", icon: "📌", title: t("form.location.referencia.title"), subtitle: t("form.location.referencia.subtitle") },
+  ];
   const [gpsStatus, setGpsStatus] = useState<"idle" | "locating" | "done" | "error">(
     draft.gpsCoords ? "done" : "idle"
   );
@@ -507,12 +506,12 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
 
   const gpsSubtitle =
     gpsStatus === "locating"
-      ? "Obteniendo tu ubicación…"
+      ? t("form.location.gps.locating")
       : gpsStatus === "error"
-      ? "No se pudo obtener tu ubicación. Intenta de nuevo o usa otra opción."
+      ? t("form.location.gps.error")
       : gpsStatus === "done"
       ? draft.gpsPlace || `${draft.gpsCoords?.lat.toFixed(4)}, ${draft.gpsCoords?.lng.toFixed(4)}`
-      : "Detecta automáticamente dónde estás";
+      : t("form.location.gps.idle");
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -526,7 +525,7 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
       >
         <span className="text-lg">📍</span>
         <span className="flex-1">
-          <span className="block text-sm font-bold">Usar mi ubicación GPS</span>
+          <span className="block text-sm font-bold">{t("form.location.gps.title")}</span>
           <span className="block text-xs" style={{ color: "var(--muted)" }}>{gpsSubtitle}</span>
         </span>
       </button>
@@ -551,7 +550,7 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
               value={draft.manual}
               onChange={(v) => setDraft((d) => ({ ...d, manual: v, manualCoords: null }))}
               onPick={(s) => setDraft((d) => ({ ...d, manual: s.label, manualCoords: { lat: s.lat, lng: s.lng } }))}
-              placeholder="Ej. Calle Real de Macuto, frente a la plaza"
+              placeholder={t("form.location.manual.placeholder")}
             />
           )}
           {o.id === "referencia" && draft.loc === "referencia" && (
@@ -559,13 +558,13 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
               <input
                 value={draft.reference}
                 onChange={(e) => setDraft((d) => ({ ...d, reference: e.target.value }))}
-                aria-label="Punto de referencia de la ubicación"
-                placeholder="Ej. Cerca de la panadería, al lado de la cancha"
+                aria-label={t("form.location.referencia.aria")}
+                placeholder={t("form.location.referencia.placeholder")}
                 className="mt-2 h-12 w-full rounded-xl border px-3.5 text-sm outline-none"
                 style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
               />
               <p className="mt-2.5 text-xs font-bold" style={{ color: "var(--fg-2)" }}>
-                Marcar zona aproximada en el mapa (opcional)
+                {t("form.location.referencia.zoneLabel")}
               </p>
               <RadiusPicker
                 value={draft.referenceArea}

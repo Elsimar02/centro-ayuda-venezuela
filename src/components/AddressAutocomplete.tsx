@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "@/lib/i18n";
 
 type Suggestion = { label: string; lat: number; lng: number };
 
@@ -43,6 +44,7 @@ export function AddressAutocomplete({
   onPick: (s: Suggestion) => void;
   placeholder: string;
 }) {
+  const { t } = useLanguage();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -91,7 +93,7 @@ export function AddressAutocomplete({
     <div className="relative">
       <input
         value={value}
-        aria-label="Buscar dirección"
+        aria-label={t("address.searchAria")}
         onChange={(e) => {
           onChange(e.target.value);
           setOpen(true);
