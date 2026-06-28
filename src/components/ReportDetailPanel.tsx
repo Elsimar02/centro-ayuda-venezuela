@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { CATS, PEOPLE_COUNT_TYPES, RESOLVE_THRESHOLD, Report, SHOW_URGENCY_TYPES, STATUS, TYPE_FIELDS, URG } from "@/lib/types";
 import { telLink, waLink } from "@/lib/contact";
 import { ReportUpdates } from "@/components/ReportUpdates";
+import { findPossibleMatches } from "@/lib/matching";
 import { useLanguage } from "@/lib/i18n";
 
 export function ReportDetailPanel({
@@ -16,6 +17,8 @@ export function ReportDetailPanel({
   onResolved,
   onViewMap,
   moderator = false,
+  allReports = [],
+  onOpenReport,
 }: {
   report: Report;
   onClose: () => void;
@@ -25,7 +28,10 @@ export function ReportDetailPanel({
   onResolved?: () => void;
   onViewMap?: () => void;
   moderator?: boolean;
+  allReports?: Report[];
+  onOpenReport?: (r: Report) => void;
 }) {
+  const matches = useMemo(() => findPossibleMatches(report, allReports), [report, allReports]);
   const { t, tSplit, catLabel, statusLabel, urgLabel, fieldLabel, timeAgo } = useLanguage();
   const cat = CATS[report.type];
   const st = STATUS[report.status];
@@ -101,6 +107,51 @@ export function ReportDetailPanel({
               {report.description || t("detail.noDescription")}
             </p>
           </Section>
+
+          {matches.length > 0 && (
+            <Section title={`Posibles coincidencias (${matches.length})`}>
+              <p className="mb-2 text-xs font-semibold" style={{ color: "#d97706" }}>
+                ⚠️{" "}
+                {report.type === "persona_desaparecida"
+                  ? "Esta persona podría figurar en estos registros. Sin confirmar: revisa con cuidado antes de dar nada por seguro."
+                  : "Alguien podría estar buscando a esta persona. Sin confirmar: revisa con cuidado."}
+              </p>
+              <div className="flex flex-col gap-2">
+                {matches.map((m) => (
+                  <button
+                    type="button"
+                    key={m.report.id}
+                    onClick={() => onOpenReport?.(m.report)}
+                    className="flex items-center gap-2.5 rounded-xl border p-2.5 text-left"
+                    style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+                  >
+                    <span className="text-lg">{CATS[m.report.type].emoji}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold">
+                        {m.report.details?.nombre || CATS[m.report.type].label}
+                      </span>
+                      <span className="block truncate text-xs" style={{ color: "var(--muted)" }}>
+                        {CATS[m.report.type].label} · {m.report.place}
+                      </span>
+                      <span className="block text-[11px] font-semibold" style={{ color: "var(--muted)" }}>
+                        {m.reasons.join(" · ")}
+                      </span>
+                    </span>
+                    <span
+                      className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                      style={
+                        m.confidence === "alta"
+                          ? { background: "rgba(220,38,38,.15)", color: "#dc2626" }
+                          : { background: "rgba(217,119,6,.15)", color: "#d97706" }
+                      }
+                    >
+                      {m.confidence === "alta" ? "coincidencia alta" : "posible"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </Section>
+          )}
 
           {fields.length > 0 && (
             <Section title={t("detail.details")}>
