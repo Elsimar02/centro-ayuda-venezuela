@@ -902,6 +902,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           report={selectedReport}
           onClose={() => setSelected(null)}
           moderator={canModerate}
+          allReports={reports}
+          onOpenReport={setSelected}
           onResolved={selectedReport.external ? undefined : () => verify(selectedReport, "resolved")}
           {...detailActions}
         />

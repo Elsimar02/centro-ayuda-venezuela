@@ -162,6 +162,8 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
         <ReportDetailPanel
           report={selected}
           onClose={() => setSelected(null)}
+          allReports={reports}
+          onOpenReport={setSelected}
           onVerify={selected.external ? undefined : () => verify(selected, "confirm")}
           onFalse={selected.external ? undefined : () => verify(selected, "incorrect")}
           onAttended={selected.external ? undefined : () => verify(selected, "attended")}
