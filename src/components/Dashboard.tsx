@@ -15,8 +15,10 @@ import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
 import { SeismicActivity } from "@/components/SeismicActivity";
-import { FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
+import { CATS, FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType, STATUS } from "@/lib/types";
 import { telLink } from "@/lib/contact";
+import { useFollows } from "@/hooks/useFollows";
+import { findPossibleMatches } from "@/lib/matching";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
 
@@ -25,6 +27,7 @@ const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://centrocooperativove
 const NAV = [
   { id: "resumen", icon: "📊", label: "Resumen" },
   { id: "reportes", icon: "📋", label: "Reportes" },
+  { id: "siguiendo", icon: "⭐", label: "Siguiendo" },
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
@@ -305,6 +308,7 @@ type Section = (typeof NAV)[number]["id"];
 
 export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const { reports, moderate, submit, verify } = useReports();
+  const { follows, toggle: toggleFollow } = useFollows();
   const externalPets = useExternalPets();
   const connectedUsers = usePresence();
   const { theme, toggleTheme } = useTheme();
@@ -379,6 +383,14 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   }
 
   const pending = useMemo(() => reports.filter((r) => r.status === "sin_verificar"), [reports]);
+  const followAlerts = useMemo(
+    () =>
+      follows.reduce((acc, f) => {
+        const live = reports.find((r) => r.id === f.id);
+        return acc + (live && findPossibleMatches(live, reports).length > 0 ? 1 : 0);
+      }, 0),
+    [follows, reports]
+  );
   const allReports = useMemo(() => [...reports, ...externalPets], [reports, externalPets]);
   const selectedReport = selected ? allReports.find((r) => r.id === selected.id) ?? selected : null;
 
@@ -570,6 +582,11 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 {pending.length}
               </span>
             )}
+            {n.id === "siguiendo" && followAlerts > 0 && (
+              <span className="rounded-md px-1.5 py-0.5 text-[10px]" style={{ background: "#d97706", color: "#fff" }}>
+                {followAlerts}
+              </span>
+            )}
           </button>
         ))}
       </nav>
@@ -579,7 +596,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           className="hidden w-56 flex-shrink-0 flex-col gap-1 p-4 md:flex"
           style={{ borderRight: "1px solid var(--border)", background: "var(--surface)" }}
         >
-          <NavList section={section} pending={pending.length} onSelect={setSection} />
+          <NavList section={section} pending={pending.length} followAlerts={followAlerts} onSelect={setSection} />
         </aside>
 
         {navOpen && (
@@ -601,6 +618,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
               <NavList
                 section={section}
                 pending={pending.length}
+                followAlerts={followAlerts}
                 onSelect={(id) => {
                   setSection(id);
                   setNavOpen(false);
@@ -753,6 +771,48 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
               {searchedReports.length === 0 && (
                 <div className="p-10 text-center text-sm" style={{ color: "var(--muted)" }}>Sin reportes para este filtro.</div>
               )}
+            </div>
+          )}
+
+          {section === "siguiendo" && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm" style={{ color: "var(--muted)" }}>{t("follow.section.intro")}</p>
+              {follows.length === 0 && (
+                <div className="p-10 text-center text-sm" style={{ color: "var(--muted)" }}>{t("follow.empty")}</div>
+              )}
+              {follows.map((f) => {
+                const live = reports.find((r) => r.id === f.id);
+                if (!live) {
+                  return (
+                    <div key={f.id} className="flex items-center justify-between gap-3 rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-bold">{f.nombre || f.place}</span>
+                        <span className="block text-xs" style={{ color: "var(--muted)" }}>{t("follow.gone")}</span>
+                      </span>
+                      <button type="button" onClick={() => toggleFollow({ id: f.id } as Report)} className="flex-shrink-0 rounded-lg border px-3 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>
+                        {t("follow.unfollow")}
+                      </button>
+                    </div>
+                  );
+                }
+                const fMatches = findPossibleMatches(live, reports);
+                return (
+                  <div key={f.id} className="rounded-2xl border p-3" style={{ borderColor: fMatches.length > 0 ? "#d97706" : "var(--border)", background: "var(--surface)" }}>
+                    <button type="button" onClick={() => setSelected(live)} className="flex w-full items-center gap-2.5 text-left">
+                      <span className="text-lg">{CATS[live.type].emoji}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-bold">{live.details?.nombre || CATS[live.type].label}</span>
+                        <span className="block truncate text-xs" style={{ color: "var(--muted)" }}>{CATS[live.type].label} · {STATUS[live.status].label}</span>
+                      </span>
+                    </button>
+                    {fMatches.length > 0 && (
+                      <button type="button" onClick={() => setSelected(live)} className="mt-2 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold" style={{ background: "rgba(217,119,6,.15)", color: "#d97706" }}>
+                        ⚠️ {t("follow.match.alert")} ({fMatches.length})
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -966,10 +1026,12 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
 function NavList({
   section,
   pending,
+  followAlerts = 0,
   onSelect,
 }: {
   section: Section;
   pending: number;
+  followAlerts?: number;
   onSelect: (id: Section) => void;
 }) {
   const { t } = useLanguage();
@@ -990,6 +1052,11 @@ function NavList({
           {n.id === "reportes" && pending > 0 && (
             <span className="ml-auto rounded-md px-1.5 py-0.5 text-[10px] text-white" style={{ background: "var(--accent)" }}>
               {pending}
+            </span>
+          )}
+          {n.id === "siguiendo" && followAlerts > 0 && (
+            <span className="ml-auto rounded-md px-1.5 py-0.5 text-[10px] text-white" style={{ background: "#d97706" }}>
+              {followAlerts}
             </span>
           )}
         </button>
