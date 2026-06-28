@@ -19,8 +19,8 @@ function tileUrl(theme: "light" | "dark", base: "streets" | "sat") {
 // reconstruir HTML/ícono de cada marcador en cada re-render (ej. al hacer hover).
 const iconCache = new Map<string, L.DivIcon>();
 
-function icon(type: Report["type"], urgency: Report["urgency"]) {
-  const key = `${type}|${urgency}`;
+function icon(type: Report["type"], urgency: Report["urgency"], photoUrl?: string) {
+  const key = photoUrl ? `photo|${photoUrl}` : `${type}|${urgency}`;
   const cached = iconCache.get(key);
   if (cached) return cached;
   const c = CATS[type];
@@ -28,7 +28,10 @@ function icon(type: Report["type"], urgency: Report["urgency"]) {
     urgency === "critica"
       ? `<div style="position:absolute;left:50%;top:13px;width:30px;height:30px;margin-left:-15px;border-radius:50%;background:${c.color};animation:ccpulse 1.8s ease-out infinite"></div>`
       : "";
-  const html = `<div style="position:relative;width:34px;height:46px">${ring}<div style="position:absolute;left:2px;top:0;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg) translateZ(0);background:${c.color};border:2px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.35)"></div><div style="position:absolute;left:2px;top:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px">${c.emoji}</div></div>`;
+  const face = photoUrl
+    ? `<div style="position:absolute;left:2px;top:0;width:30px;height:30px;border-radius:50%;background-image:url('${photoUrl}');background-size:cover;background-position:center"></div>`
+    : `<div style="position:absolute;left:2px;top:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px">${c.emoji}</div>`;
+  const html = `<div style="position:relative;width:34px;height:46px">${ring}<div style="position:absolute;left:2px;top:0;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg) translateZ(0);background:${c.color};border:2px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.35)"></div>${face}</div>`;
   const divIcon = L.divIcon({ className: "ccc-pin", html, iconSize: [34, 46], iconAnchor: [17, 40] });
   iconCache.set(key, divIcon);
   return divIcon;
@@ -48,10 +51,11 @@ const ReportMarker = memo(function ReportMarker({
   const r = report;
   const c = CATS[r.type];
   const radius = Number(r.details?._approx_radius_m);
+  const photoUrl = r.media.find((m) => m.kind === "foto" && m.url)?.url;
   return (
     <Marker
       position={[r.lat, r.lng]}
-      icon={icon(r.type, r.urgency)}
+      icon={icon(r.type, r.urgency, photoUrl)}
       eventHandlers={{
         click: () => {
           onHover(r.id);

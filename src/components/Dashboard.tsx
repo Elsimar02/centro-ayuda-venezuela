@@ -26,6 +26,7 @@ const NAV = [
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
+  { id: "encuentro_seguro", icon: "👨‍👩‍👧", label: "Encuentro Seguro" },
   { id: "donaciones", icon: "💜", label: "Donaciones" },
   { id: "telefonos", icon: "☎️", label: "Teléfonos de emergencia" },
   { id: "voluntariado", icon: "🤝", label: "Voluntariado" },
@@ -41,6 +42,17 @@ const COMM_GROUPS = [
     desc: "Plataforma ciudadana para registrar y buscar personas desaparecidas tras el terremoto.",
     url: "https://www.desaparecidosvenezuela.com/",
     cta: "Buscar o registrar a alguien",
+  },
+] as const;
+
+const ENCUENTRO_SEGURO_LINKS = [
+  {
+    id: "reencuentro-seguro",
+    name: "Encuentro Seguro",
+    icon: "👨‍👩‍👧",
+    desc: "Plataforma de reunificación familiar para niños, niñas y adolescentes separados de sus familias tras el terremoto. Permite a familiares iniciar una búsqueda, a hospitales/refugios registrar menores sin acompañante, y consultar el estado de un caso con código y PIN. No publica fotos ni ubicaciones de los niños; todo reencuentro requiere verificación presencial.",
+    url: "https://reencuentroseguro.com",
+    cta: "Ir a Encuentro Seguro",
   },
 ] as const;
 
@@ -771,6 +783,17 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           )}
 
           {section === "grupos" && <LinkCardGrid items={COMM_GROUPS} />}
+
+          {section === "encuentro_seguro" && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                Para casos de niños, niñas o adolescentes separados de su familia tras el terremoto.
+                Esta plataforma opera bajo el marco de la LOPNNA y requiere verificación presencial
+                para cualquier reencuentro — no es un listado público de menores.
+              </p>
+              <LinkCardGrid items={ENCUENTRO_SEGURO_LINKS} />
+            </div>
+          )}
 
           {section === "donaciones" && (
             <div className="flex flex-col gap-4">
