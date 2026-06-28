@@ -10,9 +10,11 @@ import { useLanguage } from "@/lib/i18n";
 import { useFollows } from "@/hooks/useFollows";
 import { supabase } from "@/lib/supabase";
 
-// Las alertas por correo solo se muestran cuando el backend está configurado
-// (migración + Resend + cron). Así nadie ve "te avisaremos" sin que funcione.
-const ALERTS_ENABLED = process.env.NEXT_PUBLIC_ALERTS_ENABLED === "true";
+// Backend de alertas ya configurado (migración + Resend con dominio verificado
+// + Vercel Cron), así que la captura de correo va siempre activa. (Antes esto
+// dependía de NEXT_PUBLIC_ALERTS_ENABLED, pero Turbopack no inlinaba la var en
+// el cliente y el flag quedaba undefined → la función nunca aparecía.)
+const ALERTS_ENABLED = true;
 
 export function ReportDetailPanel({
   report,
