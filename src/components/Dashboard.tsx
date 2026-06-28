@@ -13,10 +13,12 @@ import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
 import { SeismicActivity } from "@/components/SeismicActivity";
-import { CATS, HOSPITAL_LIST_DISCLAIMER, MAP_FILTERS, Report, ReportType } from "@/lib/types";
+import { CATS, FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { telLink } from "@/lib/contact";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
+
+const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://centrocooperativovenezuela.com";
 
 const NAV = [
   { id: "resumen", icon: "📊", label: "Resumen" },
@@ -286,8 +288,6 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const [navOpen, setNavOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const appUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://centrocooperativovenezuela.com";
-
   // Texto humano para acompañar la imagen/enlace (incluye el link porque en un
   // estado o historia el enlace no es clicable: tiene que estar escrito).
   function shareCaption() {
@@ -297,14 +297,14 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
       "un refugio con cupo, un hospital que necesita insumos, agua o comida.\n\n" +
       "Si viste algo, repórtalo. Si necesitas ayuda, búscala en el mapa.\n\n" +
       "Reportar puede salvar una vida. Compartir, también 🙏\n" +
-      `👉 ${appUrl()}`
+      `👉 ${APP_URL}`
     );
   }
 
   // Compartir el ENLACE (clicable, ideal para mandar a una persona o grupo).
   async function shareLink() {
     setShareOpen(false);
-    const url = appUrl();
+    const url = APP_URL;
     const text =
       "🇻🇪 Ayudémonos entre todos. Mapa ciudadano para reportar y encontrar ayuda tras los terremotos: personas, refugios, hospitales, agua y comida. Reportar puede salvar una vida 🙏";
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -616,9 +616,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 <div className="flex flex-col gap-3">
                   <FilterChips value={reportFilter} onChange={setReportFilter} />
                   <div
-                    className="relative cursor-pointer overflow-hidden rounded-2xl border"
+                    className="relative overflow-hidden rounded-2xl border"
                     style={{ borderColor: "var(--border)", background: "var(--surface)", minHeight: 420 }}
-                    onClick={() => setShowFullMap(true)}
                   >
                     <ReportMap
                       reports={filteredReports}
@@ -629,6 +628,14 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                       flyTarget={null}
                       onSelect={setSelected}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowFullMap(true)}
+                      className="absolute right-3 top-3 z-[1000] flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold shadow-md"
+                      style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--fg)" }}
+                    >
+                      ⛶ Ver mapa completo
+                    </button>
                   </div>
                 </div>
                 <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
@@ -653,12 +660,12 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           {section === "reportes" && (
             <div className="flex flex-col gap-3">
               <FilterChips value={reportFilter} onChange={setReportFilter} />
-              {reportFilter === "lista_hospitales" && (
+              {FILTER_DISCLAIMERS[reportFilter] && (
                 <div
                   className="rounded-xl px-3.5 py-2.5 text-xs font-bold leading-relaxed"
                   style={{ background: "rgba(124,58,237,.12)", border: "1px solid rgba(124,58,237,.3)", color: "#7c3aed" }}
                 >
-                  {HOSPITAL_LIST_DISCLAIMER}
+                  {FILTER_DISCLAIMERS[reportFilter]}
                 </div>
               )}
               <input
@@ -668,6 +675,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   setReportSearch(e.target.value);
                   setReportPage(1);
                 }}
+                aria-label="Buscar reportes por nombre, cédula, lugar o descripción"
                 placeholder="Buscar por nombre, cédula, lugar o descripción..."
                 className="h-10 w-full rounded-xl border px-3.5 text-sm outline-none"
                 style={{ borderColor: "var(--border)", background: "var(--surface)" }}
@@ -738,9 +746,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
             <div className="flex flex-col gap-3">
               <FilterChips value={reportFilter} onChange={setReportFilter} />
               <div
-                className="cursor-pointer overflow-hidden rounded-2xl border"
+                className="relative overflow-hidden rounded-2xl border"
                 style={{ borderColor: "var(--border)", background: "var(--surface)", height: "calc(100vh - 210px)" }}
-                onClick={() => setShowFullMap(true)}
               >
                 <ReportMap
                   reports={filteredReports}
@@ -751,6 +758,14 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   flyTarget={null}
                   onSelect={(r) => setSelected(r)}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowFullMap(true)}
+                  className="absolute right-3 top-3 z-[1000] flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold shadow-md"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--fg)" }}
+                >
+                  ⛶ Pantalla completa
+                </button>
               </div>
             </div>
           )}

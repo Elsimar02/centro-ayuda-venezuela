@@ -58,7 +58,7 @@ export function ReportRow({
       <div className="min-w-0 flex-1">
         <div className="truncate text-base font-bold">
           {keyFieldValue || c.label}
-          {report.external && (
+          {(report.external || report.sourceInfo) && (
             <span className="ml-1.5 rounded-md px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "var(--surface-3)", color: "var(--muted)" }}>
               🌐 externo
             </span>

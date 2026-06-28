@@ -53,7 +53,31 @@ export type Report = {
   // Presente solo en reportes leídos en vivo desde otra plataforma (no viven en
   // nuestra base de datos): se les oculta moderación/edición y se les atribuye la fuente.
   external?: { source: string; url: string };
+  // Atribución para reportes que SÍ viven en nuestra base pero cuyos datos fueron
+  // recopilados de páginas externas. Muestra la etiqueta "externo" y un enlace a la
+  // fuente, pero mantiene activa la verificación ciudadana.
+  sourceInfo?: { source: string; url: string };
 };
+
+// Mapea el texto de `details.fuente` (que dejan los scripts de importación) a la
+// URL pública de la página de origen, para poder enlazar la fuente en la ficha.
+const SOURCE_URLS: { match: string; url: string }[] = [
+  { match: "ubica", url: "https://911.ubica.me/" },
+  { match: "venezuelatebusca", url: "https://venezuelatebusca.com/" },
+  { match: "desaparecidos", url: "https://desaparecidosterremotovenezuela.com/" },
+  { match: "sosvenezuela", url: "https://sosvenezuela2026.com/" },
+  { match: "venezuelareporta", url: "https://venezuelareporta.org/" },
+];
+
+export function sourceInfoFromDetails(
+  details: Record<string, string> | undefined
+): { source: string; url: string } | undefined {
+  const fuente = details?.fuente?.trim();
+  if (!fuente) return undefined;
+  const lower = fuente.toLowerCase();
+  const hit = SOURCE_URLS.find((s) => lower.includes(s.match));
+  return { source: fuente, url: hit?.url ?? "" };
+}
 
 // ── Actualizaciones en vivo por reporte ──
 export type UpdateKind =
@@ -126,8 +150,17 @@ export const CATS: Record<ReportType, CatConfig> = {
 // Aviso obligatorio para la sección de listas hospitalarias: estos nombres vienen de
 // listas de pacientes ingresados (no de un reporte familiar de desaparición), así que
 // debe quedar claro que es información sin confirmar y pedir ayuda para verificarla.
-export const HOSPITAL_LIST_DISCLAIMER =
-  "Esta lista recopila información de varias páginas y listas hospitalarias con el único fin de ayudar a las familias a encontrar a sus seres queridos. Es contenido delicado y sin confirmar: si conoces a alguna de estas personas, por favor ayúdanos a confirmar o desmentir su información.";
+const PRIVACY_CEDULA_NOTE =
+  "Para proteger la información privada de las personas, todos los datos extraídos de páginas externas se trabajan solo con los últimos 4 dígitos de su cédula, nunca el número completo.";
+
+export const FILTER_DISCLAIMERS: Partial<Record<string, string>> = {
+  personas:
+    `Información delicada sobre personas desaparecidas, encontradas y fallecidas, recopilada de reportes ciudadanos y de páginas externas de búsqueda. Puede no estar verificada: si conoces a alguien en esta lista, ayúdanos a confirmar o desmentir su información. ${PRIVACY_CEDULA_NOTE}`,
+  atrapada:
+    "Información delicada sobre personas atrapadas o edificios colapsados, reportada por familiares y vecinos en tiempo real. Puede no estar verificada todavía: si tienes datos sobre alguno de estos casos, ayúdanos a confirmarlos o actualizarlos cuanto antes.",
+  lista_hospitales:
+    `Esta lista recopila información de varias páginas y listas hospitalarias con el único fin de ayudar a las familias a encontrar a sus seres queridos. Es contenido delicado y sin confirmar: si conoces a alguna de estas personas, por favor ayúdanos a confirmar o desmentir su información. ${PRIVACY_CEDULA_NOTE}`,
+};
 
 export const PERSON_TYPES: ReportType[] = [
   "persona_desaparecida",
@@ -176,6 +209,7 @@ export const TYPE_FIELDS: Partial<Record<ReportType, FieldDef[]>> = {
   persona_fallecida: [
     { key: "nombre", label: "Nombre (si se conoce)", placeholder: "Nombre completo" },
     { key: "cedula", label: "Cédula (opcional)", placeholder: "Ej. V-12345678, solo si la conoces" },
+    { key: "cedula_ultimos4", label: "Últimos 4 dígitos de cédula", placeholder: "Ej. 0534" },
     { key: "donde_encontrada", label: "Dónde fue encontrada", placeholder: "Ej. Bajo escombros, calle X" },
     { key: "autoridad_notificada", label: "¿Ya se notificó a una autoridad?", placeholder: "Ej. Protección Civil, bomberos" },
   ],
@@ -211,6 +245,7 @@ export const TYPE_FIELDS: Partial<Record<ReportType, FieldDef[]>> = {
     { key: "edad", label: "Edad aproximada", placeholder: "Ej. 45 años" },
     { key: "hospital", label: "Hospital donde figura", placeholder: "Ej. Hospital Domingo Luciani" },
     { key: "procedencia_diagnostico", label: "Procedencia / diagnóstico (si se conoce)", placeholder: "Ej. Procedencia La Guaira, traumatología" },
+    { key: "cedula_ultimos4", label: "Últimos 4 dígitos de cédula", placeholder: "Ej. 0534" },
   ],
   insumos_disponibles: [
     { key: "que_hay", label: "Qué hay disponible", placeholder: "Ej. Medicinas, gasas, suero" },

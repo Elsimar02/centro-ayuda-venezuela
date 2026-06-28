@@ -130,6 +130,11 @@ export function ReportDetailPanel({
               📍 {report.place}
               {radius > 0 ? ` · zona aprox. ${radius} m` : ""}
             </p>
+            {report.details?.ubicacion_aprox && (
+              <p className="mt-1 text-xs font-semibold" style={{ color: "#d97706" }}>
+                ⚠️ {report.details.ubicacion_aprox}
+              </p>
+            )}
           </Section>
 
           {(report.reporter_name || report.contact_phone) && (
@@ -193,6 +198,23 @@ export function ReportDetailPanel({
             </Section>
           ) : (
             <>
+              {report.sourceInfo && (
+                <Section title="Fuente">
+                  <p className="text-sm" style={{ color: "var(--fg-2)" }}>
+                    Información recopilada de{" "}
+                    {report.sourceInfo.url ? (
+                      <a href={report.sourceInfo.url} target="_blank" rel="noopener noreferrer" className="font-bold underline">
+                        {report.sourceInfo.source}
+                      </a>
+                    ) : (
+                      <span className="font-bold">{report.sourceInfo.source}</span>
+                    )}
+                    . No está confirmada por nosotros: si conoces a esta persona, ayúdanos a confirmar o desmentir su
+                    información con los botones de abajo.
+                  </p>
+                </Section>
+              )}
+
               <Section title="Verificación ciudadana">
                 <div className="flex flex-wrap gap-4 text-sm" style={{ color: "var(--fg-2)" }}>
                   <span>✓ {report.vc_confirm} confirmaron</span>

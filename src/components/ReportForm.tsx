@@ -559,6 +559,7 @@ function LocationStep({ draft, setDraft }: { draft: Draft; setDraft: React.Dispa
               <input
                 value={draft.reference}
                 onChange={(e) => setDraft((d) => ({ ...d, reference: e.target.value }))}
+                aria-label="Punto de referencia de la ubicación"
                 placeholder="Ej. Cerca de la panadería, al lado de la cancha"
                 className="mt-2 h-12 w-full rounded-xl border px-3.5 text-sm outline-none"
                 style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
