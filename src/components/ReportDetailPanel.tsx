@@ -6,14 +6,7 @@ import { CATS, PEOPLE_COUNT_TYPES, RESOLVE_THRESHOLD, Report, SHOW_URGENCY_TYPES
 import { telLink, waLink } from "@/lib/contact";
 import { ReportUpdates } from "@/components/ReportUpdates";
 import { findPossibleMatches } from "@/lib/matching";
-
-function timeAgo(createdAt: string) {
-  const m = Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000));
-  if (m <= 0) return "ahora";
-  if (m < 60) return `hace ${m} min`;
-  if (m < 60 * 24) return `hace ${Math.round(m / 60)} h`;
-  return `hace ${Math.round(m / 1440)} d`;
-}
+import { useLanguage } from "@/lib/i18n";
 
 export function ReportDetailPanel({
   report,
@@ -39,6 +32,7 @@ export function ReportDetailPanel({
   onOpenReport?: (r: Report) => void;
 }) {
   const matches = useMemo(() => findPossibleMatches(report, allReports), [report, allReports]);
+  const { t, tSplit, catLabel, statusLabel, urgLabel, fieldLabel, timeAgo } = useLanguage();
   const cat = CATS[report.type];
   const st = STATUS[report.status];
   const fields = TYPE_FIELDS[report.type] || [];
@@ -94,23 +88,23 @@ export function ReportDetailPanel({
               {cat.emoji}
             </span>
             <div>
-              <div className="text-lg font-extrabold leading-tight">{cat.label}</div>
+              <div className="text-lg font-extrabold leading-tight">{catLabel(report.type)}</div>
               <div className="text-xs" style={{ color: "var(--muted)" }}>{timeAgo(report.created_at)}</div>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="text-xl" aria-label="Cerrar">×</button>
+          <button type="button" onClick={onClose} className="text-xl" aria-label={t("common.close")}>×</button>
         </div>
 
         <div className="flex flex-col gap-4 p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge color={st.color}>{st.label}</Badge>
-            {showUrgency && <Badge color={URG[report.urgency].color}>Urgencia: {URG[report.urgency].label}</Badge>}
-            {showPeople && <Badge color="var(--muted)">{report.people} persona(s) afectadas</Badge>}
+            <Badge color={st.color}>{statusLabel(report.status)}</Badge>
+            {showUrgency && <Badge color={URG[report.urgency].color}>{t("detail.urgency", { label: urgLabel(report.urgency) })}</Badge>}
+            {showPeople && <Badge color="var(--muted)">{t("detail.peopleAffected", { n: report.people })}</Badge>}
           </div>
 
-          <Section title="Descripción">
+          <Section title={t("detail.description")}>
             <p className="text-base font-semibold leading-snug" style={{ color: "var(--fg)" }}>
-              {report.description || "Sin descripción."}
+              {report.description || t("detail.noDescription")}
             </p>
           </Section>
 
@@ -160,14 +154,14 @@ export function ReportDetailPanel({
           )}
 
           {fields.length > 0 && (
-            <Section title="Detalles">
+            <Section title={t("detail.details")}>
               <div className="flex flex-col gap-2.5">
                 {fields.map((f) => {
                   const value = report.details?.[f.key];
                   if (!value) return null;
                   return (
                     <div key={f.key}>
-                      <div className="text-xs font-bold" style={{ color: "var(--muted)" }}>{f.label}</div>
+                      <div className="text-xs font-bold" style={{ color: "var(--muted)" }}>{fieldLabel(report.type, f.key)}</div>
                       <div className="text-base font-semibold" style={{ color: "var(--fg)" }}>{value}</div>
                     </div>
                   );
@@ -176,10 +170,10 @@ export function ReportDetailPanel({
             </Section>
           )}
 
-          <Section title="Ubicación">
+          <Section title={t("detail.location")}>
             <p className="text-base font-bold leading-snug" style={{ color: "var(--fg)" }}>
               📍 {report.place}
-              {radius > 0 ? ` · zona aprox. ${radius} m` : ""}
+              {radius > 0 ? ` ${t("detail.zoneApprox", { n: radius })}` : ""}
             </p>
             {report.details?.ubicacion_aprox && (
               <p className="mt-1 text-xs font-semibold" style={{ color: "#d97706" }}>
@@ -189,8 +183,8 @@ export function ReportDetailPanel({
           </Section>
 
           {(report.reporter_name || report.contact_phone) && (
-            <Section title="Reportado por">
-              <p className="text-base font-bold" style={{ color: "var(--fg)" }}>{report.reporter_name || "Anónimo"}</p>
+            <Section title={t("detail.reportedBy")}>
+              <p className="text-base font-bold" style={{ color: "var(--fg)" }}>{report.reporter_name || t("detail.anonymous")}</p>
               {report.contact_phone && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {reporterWa && (
@@ -201,7 +195,7 @@ export function ReportDetailPanel({
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold text-white"
                       style={{ background: "#16a34a" }}
                     >
-                      🟢 WhatsApp
+                      {t("contact.whatsapp")}
                     </a>
                   )}
                   <a
@@ -209,7 +203,7 @@ export function ReportDetailPanel({
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
                     style={{ borderColor: "var(--border)", color: "var(--fg)" }}
                   >
-                    📞 Llamar
+                    {t("contact.call")}
                   </a>
                 </div>
               )}
@@ -217,7 +211,7 @@ export function ReportDetailPanel({
           )}
 
           {report.media.length > 0 && (
-            <Section title="Foto">
+            <Section title={t("detail.photo")}>
               <div className="flex flex-wrap gap-2">
                 {report.media.map((m, i) =>
                   m.url ? (
@@ -237,22 +231,21 @@ export function ReportDetailPanel({
           )}
 
           {report.external ? (
-            <Section title="Fuente">
+            <Section title={t("detail.source")}>
               <p className="text-sm" style={{ color: "var(--fg-2)" }}>
-                Publicado por la comunidad en{" "}
+                {tSplit("detail.source.external")[0]}
                 <a href={report.external.url} target="_blank" rel="noopener noreferrer" className="font-bold underline">
                   {report.external.source}
                 </a>
-                . No podemos moderar ni editar este reporte — si ya se resolvió o se eliminó allá, desaparecerá de aquí
-                automáticamente.
+                {tSplit("detail.source.external")[1]}
               </p>
             </Section>
           ) : (
             <>
               {report.sourceInfo && (
-                <Section title="Fuente">
+                <Section title={t("detail.source")}>
                   <p className="text-sm" style={{ color: "var(--fg-2)" }}>
-                    Información recopilada de{" "}
+                    {tSplit("detail.source.collected")[0]}
                     {report.sourceInfo.url ? (
                       <a href={report.sourceInfo.url} target="_blank" rel="noopener noreferrer" className="font-bold underline">
                         {report.sourceInfo.source}
@@ -260,18 +253,17 @@ export function ReportDetailPanel({
                     ) : (
                       <span className="font-bold">{report.sourceInfo.source}</span>
                     )}
-                    . No está confirmada por nosotros: si conoces a esta persona, ayúdanos a confirmar o desmentir su
-                    información con los botones de abajo.
+                    {tSplit("detail.source.collected")[1]}
                   </p>
                 </Section>
               )}
 
-              <Section title="Verificación ciudadana">
+              <Section title={t("detail.verification")}>
                 <div className="flex flex-wrap gap-4 text-sm" style={{ color: "var(--fg-2)" }}>
-                  <span>✓ {report.vc_confirm} confirmaron</span>
-                  <span>🏁 {report.vc_attended} atendido</span>
-                  <span>⚑ {report.vc_incorrect} incorrecto</span>
-                  <span>✅ {report.vc_resolved}/{RESOLVE_THRESHOLD} dicen que ya está resuelto</span>
+                  <span>{t("detail.vc.confirm", { n: report.vc_confirm })}</span>
+                  <span>{t("detail.vc.attended", { n: report.vc_attended })}</span>
+                  <span>{t("detail.vc.incorrect", { n: report.vc_incorrect })}</span>
+                  <span>{t("detail.vc.resolved", { n: report.vc_resolved, total: RESOLVE_THRESHOLD })}</span>
                 </div>
               </Section>
 
@@ -287,7 +279,7 @@ export function ReportDetailPanel({
           >
             <button type="button"
               onClick={() => setLightbox(null)}
-              aria-label="Cerrar"
+              aria-label={t("common.close")}
               className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl text-white"
             >
               ×
@@ -296,7 +288,7 @@ export function ReportDetailPanel({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={lightbox}
-                alt="Foto del reporte ampliada"
+                alt=""
                 className="max-h-full max-w-full rounded-xl object-contain"
               />
             </div>
@@ -319,30 +311,30 @@ export function ReportDetailPanel({
             <div className="flex gap-2">
               {onVerify && (
                 <ActionButton
-                  onClick={act(onVerify, moderator ? "Reporte verificado." : "¡Gracias! Sumaste una confirmación.")}
+                  onClick={act(onVerify, moderator ? t("detail.feedback.verify.mod") : t("detail.feedback.verify.citizen"))}
                   tone="green"
                 >
-                  {moderator ? "✓ Verificado" : "✓ Confirmo que es real"}
+                  {moderator ? t("detail.action.verify.mod") : t("detail.action.verify.citizen")}
                 </ActionButton>
               )}
               {onAttended && (
-                <ActionButton onClick={act(onAttended, "Gracias, marcado como “en proceso”.")} tone="accent">
-                  🛠️ Ya se atiende
+                <ActionButton onClick={act(onAttended, t("detail.feedback.attended"))} tone="accent">
+                  {t("detail.action.attended")}
                 </ActionButton>
               )}
               {onFalse && (
                 <ActionButton
-                  onClick={act(onFalse, moderator ? "Marcado como falso." : "Gracias, registramos tu reporte.")}
+                  onClick={act(onFalse, moderator ? t("detail.feedback.false.mod") : t("detail.feedback.false.citizen"))}
                   tone="red"
                 >
-                  {moderator ? "⚑ Falso" : "⚠️ Es incorrecto"}
+                  {moderator ? t("detail.action.false.mod") : t("detail.action.false.citizen")}
                 </ActionButton>
               )}
             </div>
             {onResolved && (
               <div className="flex">
-                <ActionButton onClick={act(onResolved, "Gracias, sumaste una confirmación de “resuelto”.")} tone="accent">
-                  ✅ Ya está resuelto ({report.vc_resolved}/{RESOLVE_THRESHOLD})
+                <ActionButton onClick={act(onResolved, t("detail.feedback.resolved"))} tone="accent">
+                  {t("detail.action.resolved", { n: report.vc_resolved, total: RESOLVE_THRESHOLD })}
                 </ActionButton>
               </div>
             )}
@@ -352,7 +344,7 @@ export function ReportDetailPanel({
                 className="h-11 rounded-xl border text-sm font-bold"
                 style={{ borderColor: "var(--border)" }}
               >
-                Ver en mapa
+                {t("common.viewMap")}
               </button>
             )}
           </div>

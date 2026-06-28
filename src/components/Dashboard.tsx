@@ -8,12 +8,14 @@ import { useExternalPets } from "@/hooks/useExternalPets";
 import { useExternalVolunteers } from "@/hooks/useExternalVolunteers";
 import { usePresence } from "@/hooks/usePresence";
 import { useTheme } from "@/lib/theme";
+import { useLanguage } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
 import { SeismicActivity } from "@/components/SeismicActivity";
-import { CATS, FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
+import { FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { telLink } from "@/lib/contact";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
@@ -26,6 +28,7 @@ const NAV = [
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
+  { id: "encuentro_seguro", icon: "👨‍👩‍👧", label: "Encuentro Seguro" },
   { id: "donaciones", icon: "💜", label: "Donaciones" },
   { id: "telefonos", icon: "☎️", label: "Teléfonos de emergencia" },
   { id: "voluntariado", icon: "🤝", label: "Voluntariado" },
@@ -41,6 +44,17 @@ const COMM_GROUPS = [
     desc: "Plataforma ciudadana para registrar y buscar personas desaparecidas tras el terremoto.",
     url: "https://www.desaparecidosvenezuela.com/",
     cta: "Buscar o registrar a alguien",
+  },
+] as const;
+
+const ENCUENTRO_SEGURO_LINKS = [
+  {
+    id: "reencuentro-seguro",
+    name: "Encuentro Seguro",
+    icon: "👨‍👩‍👧",
+    desc: "Plataforma de reunificación familiar para niños, niñas y adolescentes separados de sus familias tras el terremoto. Permite a familiares iniciar una búsqueda, a hospitales/refugios registrar menores sin acompañante, y consultar el estado de un caso con código y PIN. No publica fotos ni ubicaciones de los niños; todo reencuentro requiere verificación presencial.",
+    url: "https://reencuentroseguro.com",
+    cta: "Ir a Encuentro Seguro",
   },
 ] as const;
 
@@ -149,6 +163,20 @@ const EMERGENCY_LINES = [
   { name: "Digitel", phones: ["112"] },
   { name: "Movistar", phones: ["911"] },
 ] as const;
+
+// Números de emergencia a nivel nacional (no por operadora) — se muestran
+// fijos en el sidebar, visibles sin importar la sección activa.
+const NATIONAL_EMERGENCY_NUMBERS = [
+  { number: "911", label: "Emergencia nacional", tone: "primary" as const },
+  { number: "166", label: "Protección Civil", tone: "default" as const },
+  { number: "167", label: "Bomberos", tone: "default" as const },
+] as const;
+
+const PROTECCION_CIVIL_REPORTE = {
+  title: "Protección Civil — reporte nacional",
+  desc: "Línea gratuita para reportar daños estructurales, derrumbes o solicitar inspección.",
+  phone: "0800-7248451",
+};
 
 const AMBULANCES = [
   { name: "Aeroambulancias", phones: ["(0212) 993.25.41", "(0212) 992.89.80", "(0212) 992.89.90", "(0212) 991.79.40"] },
@@ -280,6 +308,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const externalPets = useExternalPets();
   const connectedUsers = usePresence();
   const { theme, toggleTheme } = useTheme();
+  const { t, catLabel } = useLanguage();
   const [section, setSection] = useState<Section>("resumen");
   const { volunteers: externalVolunteers, loading: loadingVolunteers } = useExternalVolunteers(section === "voluntariado");
   const [showReport, setShowReport] = useState(false);
@@ -370,12 +399,12 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
     const q = reportSearch.trim().toLowerCase();
     if (!q) return filteredReports;
     return filteredReports.filter((r) => {
-      const haystack = [r.place, r.description, r.reporter_name, CATS[r.type]?.label, ...Object.values(r.details ?? {})]
+      const haystack = [r.place, r.description, r.reporter_name, catLabel(r.type), ...Object.values(r.details ?? {})]
         .join(" ")
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [filteredReports, reportSearch]);
+  }, [filteredReports, reportSearch, catLabel]);
   const recentReports = useMemo(
     () => reports.toSorted((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8),
     [reports]
@@ -513,6 +542,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           <button type="button" onClick={toggleTheme} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)" }}>
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -531,7 +561,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
             }}
           >
             <span>{n.icon}</span>
-            {n.label}
+            {t(`nav.${n.id}`)}
             {n.id === "reportes" && pending.length > 0 && (
               <span
                 className="rounded-md px-1.5 py-0.5 text-[10px]"
@@ -616,18 +646,23 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 <div className="flex flex-col gap-3">
                   <FilterChips value={reportFilter} onChange={setReportFilter} />
                   <div
-                    className="relative overflow-hidden rounded-2xl border"
+                    className="relative isolate overflow-hidden rounded-2xl border"
                     style={{ borderColor: "var(--border)", background: "var(--surface)", minHeight: 420 }}
                   >
-                    <ReportMap
-                      reports={filteredReports}
-                      theme={theme}
-                      base="streets"
-                      center={[8, -66]}
-                      zoom={6}
-                      flyTarget={null}
-                      onSelect={setSelected}
-                    />
+                    {/* No montar este mapa mientras el mapa completo está abierto: evita
+                        que dos instancias de Leaflet/MarkerClusterGroup agrupen los mismos
+                        ~1900 reportes al mismo tiempo y congelen la pestaña. */}
+                    {!showFullMap && (
+                      <ReportMap
+                        reports={filteredReports}
+                        theme={theme}
+                        base="streets"
+                        center={[8, -66]}
+                        zoom={6}
+                        flyTarget={null}
+                        onSelect={setSelected}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => setShowFullMap(true)}
@@ -637,6 +672,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                       ⛶ Ver mapa completo
                     </button>
                   </div>
+                  <NationalEmergencyBlock />
                 </div>
                 <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                   <div className="px-4 py-3 text-sm font-extrabold" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -746,18 +782,20 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
             <div className="flex flex-col gap-3">
               <FilterChips value={reportFilter} onChange={setReportFilter} />
               <div
-                className="relative overflow-hidden rounded-2xl border"
+                className="relative isolate overflow-hidden rounded-2xl border"
                 style={{ borderColor: "var(--border)", background: "var(--surface)", height: "calc(100vh - 210px)" }}
               >
-                <ReportMap
-                  reports={filteredReports}
-                  theme={theme}
-                  base="streets"
-                  center={[8, -66]}
-                  zoom={6}
-                  flyTarget={null}
-                  onSelect={(r) => setSelected(r)}
-                />
+                {!showFullMap && (
+                  <ReportMap
+                    reports={filteredReports}
+                    theme={theme}
+                    base="streets"
+                    center={[8, -66]}
+                    zoom={6}
+                    flyTarget={null}
+                    onSelect={(r) => setSelected(r)}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => setShowFullMap(true)}
@@ -771,6 +809,17 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           )}
 
           {section === "grupos" && <LinkCardGrid items={COMM_GROUPS} />}
+
+          {section === "encuentro_seguro" && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                Para casos de niños, niñas o adolescentes separados de su familia tras el terremoto.
+                Esta plataforma opera bajo el marco de la LOPNNA y requiere verificación presencial
+                para cualquier reencuentro — no es un listado público de menores.
+              </p>
+              <LinkCardGrid items={ENCUENTRO_SEGURO_LINKS} />
+            </div>
+          )}
 
           {section === "donaciones" && (
             <div className="flex flex-col gap-4">
@@ -923,6 +972,7 @@ function NavList({
   pending: number;
   onSelect: (id: Section) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <>
       {NAV.map((n) => (
@@ -936,7 +986,7 @@ function NavList({
           }}
         >
           <span className="w-5 text-center">{n.icon}</span>
-          {n.label}
+          {t(`nav.${n.id}`)}
           {n.id === "reportes" && pending > 0 && (
             <span className="ml-auto rounded-md px-1.5 py-0.5 text-[10px] text-white" style={{ background: "var(--accent)" }}>
               {pending}
@@ -948,7 +998,65 @@ function NavList({
   );
 }
 
+function NationalEmergencyBlock() {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+      <div>
+        <div className="text-sm font-extrabold" style={{ color: "var(--fg)" }}>🚨 Emergencias nacionales</div>
+        <p className="mt-0.5 text-xs leading-snug" style={{ color: "var(--muted)" }}>
+          Si hay una persona en peligro ahora, llama. Toca el número para marcar.
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2.5">
+        {NATIONAL_EMERGENCY_NUMBERS.map((n) => (
+          <a
+            key={n.number}
+            href={telLink(n.number)}
+            className={`flex flex-col items-center justify-center rounded-xl px-2 py-3 text-center font-extrabold ${
+              n.tone === "primary" ? "text-white" : ""
+            }`}
+            style={
+              n.tone === "primary"
+                ? { background: "#dc2626" }
+                : { background: "var(--surface-2)", color: "var(--fg)" }
+            }
+          >
+            <span className="text-lg">{n.number}</span>
+            <span className="text-[11px] font-bold leading-tight">{n.label}</span>
+          </a>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-extrabold leading-tight" style={{ color: "var(--fg)" }}>
+              {PROTECCION_CIVIL_REPORTE.title}
+            </span>
+            <span
+              className="flex-shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
+              OFICIAL
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
+            {PROTECCION_CIVIL_REPORTE.desc}
+          </p>
+        </div>
+        <a
+          href={telLink(PROTECCION_CIVIL_REPORTE.phone)}
+          className="flex-shrink-0 rounded-lg px-3 py-2 text-center text-xs font-extrabold text-white"
+          style={{ background: "#dc2626" }}
+        >
+          {PROTECCION_CIVIL_REPORTE.phone}
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function FilterChips({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const { mapFilterLabel } = useLanguage();
   return (
     <div className="flex gap-2 overflow-x-auto pb-1" onClick={(e) => e.stopPropagation()}>
       {MAP_FILTERS.map((f) => (
@@ -964,7 +1072,7 @@ function FilterChips({ value, onChange }: { value: string; onChange: (id: string
           }}
         >
           <span>{f.emoji}</span>
-          {f.label}
+          {mapFilterLabel(f.id)}
         </button>
       ))}
     </div>
