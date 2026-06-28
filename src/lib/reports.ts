@@ -1,5 +1,5 @@
 import { SUPABASE_URL, supabase } from "./supabase";
-import { CONFIRM_THRESHOLD, Draft, MediaItem, NewUpdate, Report, ReportUpdate, RESOLVE_THRESHOLD, UPDATE_KINDS } from "./types";
+import { CONFIRM_THRESHOLD, Draft, MediaItem, NewUpdate, Report, ReportUpdate, RESOLVE_THRESHOLD, sourceInfoFromDetails, UPDATE_KINDS } from "./types";
 
 type ReportRow = {
   id: string;
@@ -44,17 +44,27 @@ function fromRow(row: ReportRow): Report {
     details: row.details || {},
     media: row.media || [],
     created_at: row.created_at,
+    sourceInfo: sourceInfoFromDetails(row.details || {}),
   };
 }
 
 export async function fetchReports(): Promise<Report[]> {
-  const { data, error } = await supabase
-    .from("reports")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1000);
-  if (error) throw error;
-  return (data as ReportRow[]).map(fromRow);
+  // PostgREST limita a 1000 filas por petición (max-rows del servidor), así que
+  // paginamos con .range() hasta traer todos los reportes.
+  const PAGE = 1000;
+  const all: ReportRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const rows = (data as ReportRow[]) ?? [];
+    all.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return all.map(fromRow);
 }
 
 function placeFor(d: Draft): string {

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Circle, MapContainer, TileLayer, Marker, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -122,6 +122,32 @@ export default function ReportMap({
     (id: string) => setHoveredId((cur) => (cur === id ? null : cur)),
     []
   );
+
+  // onSelect puede llegar como arrow inline desde el padre (identidad inestable),
+  // lo que rompería el memo de los marcadores. Lo guardamos en un ref y exponemos
+  // un callback estable, para que la lista de marcadores no se reconstruya.
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
+  const handleSelect = useCallback((report: Report) => onSelectRef.current(report), []);
+
+  // Memoizamos los marcadores con dependencia solo en `reports`: así un hover/clic
+  // (que cambia hoveredId y re-renderiza este componente) NO recrea ni reconcilia
+  // los ~1865 marcadores; solo se vuelve a dibujar el Circle del radio aproximado.
+  const markers = useMemo(
+    () =>
+      reports.map((r) => (
+        <ReportMarker
+          key={r.id}
+          report={r}
+          onHover={handleHover}
+          onUnhover={handleUnhover}
+          onSelect={handleSelect}
+        />
+      )),
+    [reports, handleHover, handleUnhover, handleSelect]
+  );
   const hoveredReport = useMemo(
     () => (hoveredId ? reports.find((r) => r.id === hoveredId) ?? null : null),
     [hoveredId, reports]
@@ -153,16 +179,15 @@ export default function ReportMap({
           }}
         />
       )}
-      <MarkerClusterGroup chunkedLoading maxClusterRadius={50} spiderfyOnMaxZoom disableClusteringAtZoom={15}>
-        {reports.map((r) => (
-          <ReportMarker
-            key={r.id}
-            report={r}
-            onHover={handleHover}
-            onUnhover={handleUnhover}
-            onSelect={onSelect}
-          />
-        ))}
+      <MarkerClusterGroup
+        chunkedLoading
+        maxClusterRadius={55}
+        disableClusteringAtZoom={18}
+        spiderfyOnMaxZoom
+        removeOutsideVisibleBounds
+        animate={false}
+      >
+        {markers}
       </MarkerClusterGroup>
     </MapContainer>
   );

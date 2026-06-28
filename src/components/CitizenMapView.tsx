@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
 import { useExternalPets } from "@/hooks/useExternalPets";
 import { useTheme } from "@/lib/theme";
-import { HOSPITAL_LIST_DISCLAIMER, MAP_FILTERS, Report, ReportType } from "@/lib/types";
+import { FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import dynamic from "next/dynamic";
@@ -115,6 +115,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar reportes por nombre, cédula o lugar"
             placeholder="Buscar por nombre, cédula o lugar..."
             className="h-9 w-full rounded-lg border px-3 text-xs font-semibold outline-none"
             style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--fg)" }}
@@ -141,10 +142,10 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
 
         {loading && <StatusBanner text="Cargando reportes…" />}
         {!loading && error && <StatusBanner text={error} tone="error" />}
-        {!loading && !error && filter === "lista_hospitales" && (
-          <StatusBanner text={HOSPITAL_LIST_DISCLAIMER} tone="warning" />
+        {!loading && !error && FILTER_DISCLAIMERS[filter] && (
+          <StatusBanner text={FILTER_DISCLAIMERS[filter]!} tone="warning" />
         )}
-        {!loading && !error && filter !== "lista_hospitales" && filtered.length === 0 && (
+        {!loading && !error && !FILTER_DISCLAIMERS[filter] && filtered.length === 0 && (
           <StatusBanner text="Sin reportes todavía · sé el primero en reportar" />
         )}
 
