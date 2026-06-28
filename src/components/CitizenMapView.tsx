@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
 import { useExternalPets } from "@/hooks/useExternalPets";
 import { useTheme } from "@/lib/theme";
+import { useLanguage } from "@/lib/i18n";
 import { FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import dynamic from "next/dynamic";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false });
@@ -15,6 +17,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
   const { reports, loading, error, submit, verify, flushQueue, queueCount } = useReports();
   const externalPets = useExternalPets();
   const { theme, toggleTheme } = useTheme();
+  const { t, mapFilterLabel } = useLanguage();
   const [filter, setFilter] = useState("todos");
   const [showReport, setShowReport] = useState(false);
   const [selected, setSelected] = useState<Report | null>(null);
@@ -58,9 +61,9 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
             <span className="text-white">📍</span>
           </div>
           <div>
-            <div className="text-sm font-extrabold leading-tight">Centro de Coordinación</div>
+            <div className="text-sm font-extrabold leading-tight">{t("app.title")}</div>
             <div className="hidden text-xs sm:block" style={{ color: "var(--muted)" }}>
-              Venezuela · respuesta a emergencias
+              {t("app.subtitle")}
             </div>
           </div>
         </div>
@@ -70,7 +73,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
             className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
             style={{ borderColor: "var(--border)" }}
           >
-            ✕ <span className="hidden sm:inline">Cerrar</span>
+            ✕ <span className="hidden sm:inline">{t("common.close")}</span>
           </button>
           <button type="button"
             onClick={toggleTheme}
@@ -79,6 +82,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
           >
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -106,7 +110,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
             }}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: offline ? "#d97706" : "#16a34a" }} />
-            {offline ? `OFFLINE · ${queueCount} en cola` : "EN LÍNEA"}
+            {offline ? t("common.offline", { n: queueCount }) : t("common.online")}
           </button>
         </div>
 
@@ -115,8 +119,8 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Buscar reportes por nombre, cédula o lugar"
-            placeholder="Buscar por nombre, cédula o lugar..."
+            aria-label={t("common.search.aria")}
+            placeholder={t("common.search.placeholder")}
             className="h-9 w-full rounded-lg border px-3 text-xs font-semibold outline-none"
             style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--fg)" }}
           />
@@ -135,18 +139,18 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
               }}
             >
               <span>{f.emoji}</span>
-              {f.label}
+              {mapFilterLabel(f.id)}
             </button>
           ))}
         </div>
 
-        {loading && <StatusBanner text="Cargando reportes…" />}
+        {loading && <StatusBanner text={t("common.loading")} />}
         {!loading && error && <StatusBanner text={error} tone="error" />}
         {!loading && !error && FILTER_DISCLAIMERS[filter] && (
           <StatusBanner text={FILTER_DISCLAIMERS[filter]!} tone="warning" />
         )}
         {!loading && !error && !FILTER_DISCLAIMERS[filter] && filtered.length === 0 && (
-          <StatusBanner text="Sin reportes todavía · sé el primero en reportar" />
+          <StatusBanner text={t("common.empty")} />
         )}
 
         <button type="button"
@@ -154,7 +158,7 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
           className="absolute bottom-6 right-5 z-20 flex h-14 items-center gap-2 rounded-full px-5 font-extrabold text-white shadow-lg"
           style={{ background: "var(--accent)" }}
         >
-          + Reportar
+          {t("common.report.cta")}
         </button>
       </div>
 

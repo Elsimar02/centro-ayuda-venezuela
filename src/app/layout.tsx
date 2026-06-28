@@ -3,6 +3,7 @@ import { Manrope, DM_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
+import { LanguageProvider } from "@/lib/i18n";
 import { DeviceVisitTracker } from "@/components/DeviceVisitTracker";
 
 const manrope = Manrope({
@@ -51,7 +52,9 @@ export default function RootLayout({
   return (
     <html lang="es" data-theme="dark" className={`${manrope.variable} ${dmMono.variable} h-full`}>
       <body className="min-h-full flex flex-col" style={{ fontFamily: "var(--font-manrope)" }}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </LanguageProvider>
         <Analytics />
         <DeviceVisitTracker />
       </body>

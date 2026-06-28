@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { MapContainer, TileLayer, Circle, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
+import { useLanguage } from "@/lib/i18n";
 
 const DEFAULT_CENTER: [number, number] = [10.606, -66.915];
 
@@ -27,6 +28,7 @@ export default function RadiusPicker({
   value: { lat: number; lng: number; radius: number } | null;
   onChange: (v: { lat: number; lng: number; radius: number } | null) => void;
 }) {
+  const { t } = useLanguage();
   const center = useMemo<[number, number]>(() => (value ? [value.lat, value.lng] : DEFAULT_CENTER), [value]);
 
   return (
@@ -61,7 +63,7 @@ export default function RadiusPicker({
           <div className="flex items-center gap-3">
             <input
               type="range"
-              aria-label="Radio de la zona en metros"
+              aria-label={t("radius.aria")}
               min={50}
               max={1500}
               step={50}
@@ -79,12 +81,12 @@ export default function RadiusPicker({
             className="self-start text-xs font-bold"
             style={{ color: "var(--muted)" }}
           >
-            Quitar zona del mapa
+            {t("radius.remove")}
           </button>
         </>
       ) : (
         <p className="text-xs" style={{ color: "var(--muted)" }}>
-          Tocá el mapa para marcar la zona aproximada (opcional).
+          {t("radius.hint")}
         </p>
       )}
     </div>

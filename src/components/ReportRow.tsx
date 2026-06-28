@@ -1,6 +1,7 @@
 "use client";
 
 import { CATS, RESOLVE_THRESHOLD, Report, STATUS, TYPE_FIELDS } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n";
 
 export function ReportRow({
   report,
@@ -15,6 +16,7 @@ export function ReportRow({
   onFalse?: () => void;
   onDelete?: () => void;
 }) {
+  const { t, catLabel, statusLabel } = useLanguage();
   const c = CATS[report.type];
   const st = STATUS[report.status];
   const showActions = onVerify || onFalse || onDelete;
@@ -57,32 +59,32 @@ export function ReportRow({
       )}
       <div className="min-w-0 flex-1">
         <div className="truncate text-base font-bold">
-          {keyFieldValue || c.label}
+          {keyFieldValue || catLabel(report.type)}
           {(report.external || report.sourceInfo) && (
             <span className="ml-1.5 rounded-md px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "var(--surface-3)", color: "var(--muted)" }}>
-              🌐 externo
+              {t("detail.external.badge")}
             </span>
           )}
         </div>
         <div className="truncate text-sm font-semibold" style={{ color: "var(--fg-2)" }}>
-          {keyFieldValue ? c.label : report.place}
+          {keyFieldValue ? catLabel(report.type) : report.place}
         </div>
       </div>
       <span
         className="flex-shrink-0 rounded-full px-3 py-1.5 text-sm font-bold"
         style={{ background: `${st.color}1a`, color: st.color }}
       >
-        {st.label}
+        {statusLabel(report.status)}
       </span>
       {showActions && (
         <div className="flex flex-shrink-0 gap-1.5" onClick={(e) => e.stopPropagation()}>
           {onVerify && (
-            <button type="button" onClick={onVerify} title="Marcar verificado" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "rgba(22,163,74,.3)", background: "rgba(22,163,74,.08)", color: "#15803d" }}>
+            <button type="button" onClick={onVerify} title={t("row.verifyTitle")} className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "rgba(22,163,74,.3)", background: "rgba(22,163,74,.08)", color: "#15803d" }}>
               ✓
             </button>
           )}
           {onFalse && (
-            <button type="button" onClick={onFalse} title="Marcar falso / spam" className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "rgba(220,38,38,.3)", background: "rgba(220,38,38,.08)", color: "#b91c1c" }}>
+            <button type="button" onClick={onFalse} title={t("row.falseTitle")} className="h-8 w-8 rounded-lg border text-sm" style={{ borderColor: "rgba(220,38,38,.3)", background: "rgba(220,38,38,.08)", color: "#b91c1c" }}>
               ⚑
             </button>
           )}
@@ -92,8 +94,8 @@ export function ReportRow({
               onClick={onDelete}
               title={
                 report.vc_resolved >= RESOLVE_THRESHOLD
-                  ? "Eliminar"
-                  : `Necesita más de 7 confirmaciones de que está resuelto (lleva ${report.vc_resolved})`
+                  ? t("row.deleteTitle.ready")
+                  : t("row.deleteTitle.locked", { n: report.vc_resolved })
               }
               className="h-8 w-8 rounded-lg border text-sm"
               style={{
