@@ -8,6 +8,11 @@ import { ReportUpdates } from "@/components/ReportUpdates";
 import { findPossibleMatches } from "@/lib/matching";
 import { useLanguage } from "@/lib/i18n";
 import { useFollows } from "@/hooks/useFollows";
+import { supabase } from "@/lib/supabase";
+
+// Las alertas por correo solo se muestran cuando el backend está configurado
+// (migración + Resend + cron). Así nadie ve "te avisaremos" sin que funcione.
+const ALERTS_ENABLED = process.env.NEXT_PUBLIC_ALERTS_ENABLED === "true";
 
 export function ReportDetailPanel({
   report,
@@ -36,6 +41,24 @@ export function ReportDetailPanel({
   const { t, tSplit, catLabel, statusLabel, urgLabel, fieldLabel, timeAgo } = useLanguage();
   const { toggle: toggleFollow, isFollowing } = useFollows();
   const following = isFollowing(report.id);
+  const [alertEmail, setAlertEmail] = useState("");
+  const [alertSaved, setAlertSaved] = useState(false);
+  const [alertError, setAlertError] = useState<string | null>(null);
+
+  async function saveAlertEmail() {
+    const email = alertEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAlertError(t("follow.email.invalid"));
+      return;
+    }
+    const { error } = await supabase.from("alert_subscriptions").insert({ report_id: report.id, email });
+    if (error) {
+      setAlertError(error.message);
+      return;
+    }
+    setAlertError(null);
+    setAlertSaved(true);
+  }
   const cat = CATS[report.type];
   const st = STATUS[report.status];
   const fields = TYPE_FIELDS[report.type] || [];
@@ -120,6 +143,36 @@ export function ReportDetailPanel({
           {!following && (
             <p className="-mt-2 text-xs" style={{ color: "var(--muted)" }}>
               {t("follow.hint")}
+            </p>
+          )}
+          {ALERTS_ENABLED && following && !alertSaved && (
+            <div className="-mt-2 flex flex-col gap-2 rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+              <p className="text-xs font-semibold" style={{ color: "var(--fg-2)" }}>{t("follow.email.prompt")}</p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={alertEmail}
+                  onChange={(e) => setAlertEmail(e.target.value)}
+                  aria-label={t("follow.email.prompt")}
+                  placeholder={t("follow.email.placeholder")}
+                  className="h-9 flex-1 rounded-lg border px-3 text-xs outline-none"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--fg)" }}
+                />
+                <button
+                  type="button"
+                  onClick={saveAlertEmail}
+                  className="h-9 flex-shrink-0 rounded-lg px-3 text-xs font-bold text-white"
+                  style={{ background: "var(--accent)" }}
+                >
+                  {t("follow.email.cta")}
+                </button>
+              </div>
+              {alertError && <p className="text-xs font-semibold" style={{ color: "#dc2626" }}>{alertError}</p>}
+            </div>
+          )}
+          {ALERTS_ENABLED && alertSaved && (
+            <p className="-mt-2 text-xs font-semibold" style={{ color: "#16a34a" }}>
+              ✓ {t("follow.email.saved")}
             </p>
           )}
 
