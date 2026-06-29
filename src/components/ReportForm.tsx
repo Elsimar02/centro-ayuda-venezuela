@@ -35,9 +35,11 @@ const RadiusPicker = dynamic(() => import("@/components/RadiusPicker"), { ssr: f
 export function ReportForm({
   onSubmit,
   onClose,
+  initialDraft,
 }: {
   onSubmit: (draft: Draft) => Promise<{ id: string }>;
   onClose: () => void;
+  initialDraft?: Partial<Draft>;
 }) {
   const { t, catLabel, urgLabel, urgHint, personStatusLabel, petStatusLabel, helpServiceLabel, fieldLabel, fieldPlaceholder } = useLanguage();
   const STEPS = [t("form.steps.0"), t("form.steps.1"), t("form.steps.2"), t("form.steps.3"), t("form.steps.4")];
@@ -46,7 +48,7 @@ export function ReportForm({
   const HELP_CARD = { label: t("form.cards.ayuda"), emoji: "🤝" };
 
   const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState<Draft>(() => freshDraft());
+  const [draft, setDraft] = useState<Draft>(() => ({ ...freshDraft(), ...initialDraft }));
   const [uploading, setUploading] = useState(false);
   const [sentId, setSentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

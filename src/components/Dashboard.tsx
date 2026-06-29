@@ -12,10 +12,11 @@ import { useLanguage } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
+import { AiQuickReport } from "@/components/AiQuickReport";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
 import { SeismicActivity } from "@/components/SeismicActivity";
-import { CATS, FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType, STATUS } from "@/lib/types";
+import { CATS, Draft, FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType, STATUS } from "@/lib/types";
 import { telLink } from "@/lib/contact";
 import { useFollows } from "@/hooks/useFollows";
 import { findPossibleMatches } from "@/lib/matching";
@@ -321,6 +322,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const [section, setSection] = useState<Section>("resumen");
   const { volunteers: externalVolunteers, loading: loadingVolunteers } = useExternalVolunteers(section === "voluntariado");
   const [showReport, setShowReport] = useState(false);
+  const [aiDraft, setAiDraft] = useState<Partial<Draft> | null>(null);
   const [selected, setSelected] = useState<Report | null>(null);
   const [showFullMap, setShowFullMap] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -636,6 +638,15 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
         <main className="flex-1 overflow-y-auto p-3.5 sm:p-6">
           {section === "resumen" && (
             <div className="flex flex-col gap-5">
+              <AiQuickReport
+                reports={allReports}
+                onSelectReport={setSelected}
+                onReady={(d) => {
+                  setAiDraft(d);
+                  setShowReport(true);
+                }}
+              />
+
               <div
                 className="flex flex-col items-start gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
                 style={{ borderColor: "var(--accent)", background: "var(--accent-soft)" }}
@@ -1026,8 +1037,12 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
 
       {showReport && (
         <ReportForm
-          onClose={() => setShowReport(false)}
+          onClose={() => {
+            setShowReport(false);
+            setAiDraft(null);
+          }}
           onSubmit={(draft) => submit(draft, false)}
+          initialDraft={aiDraft ?? undefined}
         />
       )}
 
