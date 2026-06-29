@@ -14,7 +14,10 @@ function nameTokens(s: string | undefined): Set<string> {
   const norm = (s || "")
     .toLowerCase()
     .normalize("NFD")
-    // NFD separa los acentos como combinantes; [^a-z\s] de abajo los elimina.
+    // NFD separa los acentos como caracteres combinantes (ej. "López" → l,o,◌́,p,e,z).
+    // Hay que BORRARLOS, no reemplazarlos por espacio — si no, "López" se
+    // parte en "lo" + "pez" en vez de quedar como "lopez".
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z\s]/g, " ")
     .split(/\s+/)
     .filter((t) => t.length >= 3 && !STOPWORDS.has(t));
@@ -86,4 +89,110 @@ export function findPossibleMatches(report: Report, all: Report[]): Match[] {
 
   const rank = { alta: 0, media: 1 };
   return matches.sort((a, b) => rank[a.confidence] - rank[b.confidence]).slice(0, 8);
+}
+
+// Búsqueda libre por nombre (y opcionalmente ubicación) contra TODO lo que ya
+// tenemos registrado — para cuando alguien pega un mensaje preguntando "¿se
+// sabe algo de fulano?" y lo primero que debe pasar es buscar, no crear un
+// reporte nuevo de una.
+const PERSON_SEARCH_TYPES: ReportType[] = [
+  "persona_desaparecida",
+  "persona_encontrada_viva",
+  "persona_fallecida",
+  "persona_lista_hospital",
+];
+const PET_SEARCH_TYPES: ReportType[] = ["mascota_perdida", "mascota_encontrada"];
+const LOCATION_SEARCH_TYPES: ReportType[] = ["atrapada", "colapso", "bloqueo", "peligro"];
+
+function placeTokens(r: Report): Set<string> {
+  return nameTokens([r.place, r.details?.acceso, r.details?.ubicacion_aprox].filter(Boolean).join(" "));
+}
+
+// Todo el texto libre de un reporte: descripción, lugar, nombre de quien
+// reportó y cualquier valor de "details" (acceso, edad, hospital, etc). Un
+// nombre de víctima casi siempre vive solo en la descripción de un reporte de
+// "atrapada"/"colapso" — nunca en un campo estructurado — así que para
+// encontrarla hay que mirar TODO el texto, no solo `details.nombre`.
+function fullTextTokens(r: Report): Set<string> {
+  const detailValues = r.details ? Object.values(r.details) : [];
+  return nameTokens([r.description, r.place, r.reporter_name, ...detailValues].filter(Boolean).join(" "));
+}
+
+type SearchCategory = "persona" | "mascota" | "lugar" | null;
+
+function categoryOf(tipo: ReportType | null | undefined): SearchCategory {
+  if (!tipo) return null;
+  if (PERSON_SEARCH_TYPES.includes(tipo)) return "persona";
+  if (PET_SEARCH_TYPES.includes(tipo)) return "mascota";
+  if (LOCATION_SEARCH_TYPES.includes(tipo)) return "lugar";
+  return null;
+}
+
+// `tipo` viene de lo que la IA detectó en el mensaje (persona, mascota, edificio
+// atrapado, etc). Es clave para no cruzar categorías: si preguntan por un gato,
+// jamás debe devolver hospitales o personas, y viceversa.
+export function searchReportsByText(
+  query: { nombre?: string; ubicacion?: string; tipo?: ReportType | null },
+  all: Report[]
+): Report[] {
+  const nameQ = nameTokens(query.nombre);
+  const locQ = nameTokens(query.ubicacion);
+  const category = categoryOf(query.tipo);
+  // `null` (la IA no pudo clasificar) significa "revisa todas las categorías",
+  // no "no busques nada". Una categoría explícita SÍ restringe — si dice
+  // mascota, jamás debe mezclar personas/lugares, y viceversa.
+  const allow = (c: Exclude<SearchCategory, null>) => category === null || category === c;
+  const scored: { report: Report; score: number }[] = [];
+
+  for (const r of all) {
+    let score = 0;
+
+    // Preferimos mostrar de más a que alguien se quede sin ver un reporte real
+    // de un familiar: basta con que comparta AL MENOS una palabra del nombre
+    // (ej. solo "Alexander", o solo "López") para aparecer en la lista. La
+    // persona que busca ve apellido/lugar/foto de cada resultado y descarta
+    // ella misma los que no son quien busca.
+    if (nameQ.size > 0 && allow("persona") && PERSON_SEARCH_TYPES.includes(r.type)) {
+      const haystack = nameTokens(nameOf(r));
+      let overlap = 0;
+      for (const t of nameQ) if (haystack.has(t)) overlap++;
+      const union = nameQ.size + haystack.size - overlap;
+      const jaccard = union > 0 ? overlap / union : 0;
+      if (overlap >= 1) score += 2 + jaccard;
+    }
+
+    // El nombre de alguien atrapado/bajo escombros casi siempre vive solo en
+    // la descripción de un reporte de "atrapada"/"colapso"/"bloqueo"/"peligro",
+    // nunca en un campo de nombre estructurado — hay que rastrear ahí también.
+    if (nameQ.size > 0 && allow("persona") && LOCATION_SEARCH_TYPES.includes(r.type)) {
+      const haystack = fullTextTokens(r);
+      let overlap = 0;
+      for (const t of nameQ) if (haystack.has(t)) overlap++;
+      if (overlap >= 1) score += 1.5 + overlap * 0.1;
+    }
+
+    if (nameQ.size > 0 && allow("mascota") && PET_SEARCH_TYPES.includes(r.type)) {
+      // Nombres de mascota son una sola palabra distintiva enterrada en una
+      // descripción larga ("Se llama Luna y se perdió…"): basta con que
+      // aparezca, no tiene sentido pedir similitud Jaccard contra todo el texto.
+      const haystack = nameTokens([r.description, r.details?.descripcion, r.reporter_name].filter(Boolean).join(" "));
+      let overlap = 0;
+      for (const t of nameQ) if (haystack.has(t)) overlap++;
+      if (overlap >= 1) score += 2 + overlap * 0.1;
+    }
+
+    if (locQ.size > 0 && allow("lugar") && LOCATION_SEARCH_TYPES.includes(r.type)) {
+      const haystack = placeTokens(r);
+      let overlap = 0;
+      for (const t of locQ) if (haystack.has(t)) overlap++;
+      if (overlap >= 1) score += overlap * 0.5;
+    }
+
+    if (score > 0) scored.push({ report: r, score });
+  }
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+    .map((s) => s.report);
 }
