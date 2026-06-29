@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
 import { useExternalPets } from "@/hooks/useExternalPets";
+import { useEsperanzaExternal } from "@/hooks/useEsperanzaExternal";
 import { useTheme } from "@/lib/theme";
 import { useLanguage } from "@/lib/i18n";
 import { FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType } from "@/lib/types";
@@ -16,6 +17,7 @@ const ReportMap = dynamic(() => import("@/components/ReportMap"), { ssr: false }
 export function CitizenMapView({ onClose }: { onClose: () => void }) {
   const { reports, loading, error, submit, verify, flushQueue, queueCount } = useReports();
   const externalPets = useExternalPets();
+  const externalEsperanza = useEsperanzaExternal(reports);
   const { theme, toggleTheme } = useTheme();
   const { t, mapFilterLabel } = useLanguage();
   const [filter, setFilter] = useState("todos");
@@ -30,7 +32,10 @@ export function CitizenMapView({ onClose }: { onClose: () => void }) {
     setOffline((o) => !o);
   }
 
-  const allReports = useMemo(() => [...reports, ...externalPets], [reports, externalPets]);
+  const allReports = useMemo(
+    () => [...reports, ...externalPets, ...externalEsperanza],
+    [reports, externalPets, externalEsperanza]
+  );
 
   const byType = useMemo(() => {
     const def = MAP_FILTERS.find((f) => f.id === filter);

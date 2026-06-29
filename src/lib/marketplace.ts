@@ -66,6 +66,11 @@ export type ResourceGroup =
   | "energia"
   | "personal_medico"
   | "personal_tecnico"
+  | "oficios"
+  | "materiales"
+  | "mascotas"
+  | "negocio"
+  | "exterior"
   | "otros";
 
 export type Resource = { key: string; label: string; emoji: string; group: ResourceGroup };
@@ -77,6 +82,11 @@ export const RESOURCE_GROUPS: { id: ResourceGroup; label: string; emoji: string 
   { id: "energia", label: "Energía e infraestructura", emoji: "⚡" },
   { id: "personal_medico", label: "Personal médico", emoji: "🩺" },
   { id: "personal_tecnico", label: "Personal técnico y rescate", emoji: "🛠️" },
+  { id: "oficios", label: "Oficios", emoji: "🧰" },
+  { id: "materiales", label: "Materiales y herramientas", emoji: "🔧" },
+  { id: "mascotas", label: "Mascotas y animales", emoji: "🐾" },
+  { id: "negocio", label: "Negocio a disposición", emoji: "🏪" },
+  { id: "exterior", label: "Desde el exterior", emoji: "🌍" },
   { id: "otros", label: "Otros", emoji: "➕" },
 ];
 
@@ -123,6 +133,32 @@ export const RESOURCES: Resource[] = [
   { key: "rescatistas", label: "Rescatistas", emoji: "🦺", group: "personal_tecnico" },
   { key: "ingenieros", label: "Ingenieros", emoji: "📐", group: "personal_tecnico" },
   { key: "arquitectos", label: "Arquitectos", emoji: "📏", group: "personal_tecnico" },
+  // Oficios
+  { key: "plomeros", label: "Plomeros", emoji: "🔧", group: "oficios" },
+  { key: "albaniles", label: "Albañiles", emoji: "🧱", group: "oficios" },
+  { key: "carpinteros", label: "Carpinteros", emoji: "🪚", group: "oficios" },
+  { key: "herreros", label: "Herreros", emoji: "⚒️", group: "oficios" },
+  { key: "cocineros", label: "Cocineros", emoji: "🍳", group: "oficios" },
+  { key: "transportistas", label: "Transportistas", emoji: "🚐", group: "oficios" },
+  // Materiales y herramientas
+  { key: "herramientas", label: "Herramientas", emoji: "🔨", group: "materiales" },
+  { key: "materiales_construccion", label: "Materiales de construcción", emoji: "🧱", group: "materiales" },
+  { key: "cemento", label: "Cemento", emoji: "🪣", group: "materiales" },
+  { key: "madera", label: "Madera", emoji: "🪵", group: "materiales" },
+  { key: "lonas_plasticos", label: "Lonas y plásticos", emoji: "🧵", group: "materiales" },
+  // Mascotas y animales
+  { key: "alimento_mascotas", label: "Alimento para mascotas", emoji: "🐶", group: "mascotas" },
+  { key: "rescate_animal", label: "Rescate de animales", emoji: "🐾", group: "mascotas" },
+  { key: "veterinaria", label: "Atención veterinaria", emoji: "🐾", group: "mascotas" },
+  { key: "refugio_animales", label: "Refugio para animales", emoji: "🏠", group: "mascotas" },
+  // Negocio a disposición
+  { key: "espacio_comercial", label: "Espacio comercial / local", emoji: "🏪", group: "negocio" },
+  { key: "wifi_punto", label: "Punto de wifi/carga", emoji: "📶", group: "negocio" },
+  { key: "servicios_empresa", label: "Servicios de empresa", emoji: "🏢", group: "negocio" },
+  // Desde el exterior
+  { key: "envio_internacional", label: "Envío internacional", emoji: "✈️", group: "exterior" },
+  { key: "remesa_ayuda", label: "Remesa de ayuda", emoji: "💸", group: "exterior" },
+  { key: "gestion_remota", label: "Gestión remota", emoji: "💻", group: "exterior" },
   // Otros
   { key: "voluntarios", label: "Voluntarios", emoji: "🙋", group: "otros" },
   { key: "donaciones", label: "Donaciones económicas", emoji: "💵", group: "otros" },

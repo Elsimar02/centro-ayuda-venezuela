@@ -175,3 +175,188 @@ export async function fetchExternalVolunteers(): Promise<ExternalVolunteer[]> {
     created_at: r.created_at,
   }));
 }
+
+// Red de Esperanza (red-de-esperanza-lime.vercel.app): otra plataforma de
+// reportes de desastre con Supabase público. A diferencia de redayudavenezuela,
+// mezcla datos de varios países (vimos centros de acopio en Bogotá y una
+// necesidad en Santiago de Chile), así que TODO lo que traemos de aquí se
+// filtra primero por este bounding box de Venezuela.
+const ESPERANZA_SB_URL = "https://hqoirxajavaaasvdfjoy.supabase.co";
+const ESPERANZA_SB_KEY = "sb_publishable_4qdzpICdtyX6N_XqiVmuYw_Jv_zYvOq";
+const ESPERANZA_SOURCE = { source: "Red de Esperanza", url: "https://red-de-esperanza-lime.vercel.app" };
+const VE_BBOX = "lat=gte.0.6&lat=lte.13&lng=gte.-74&lng=lte.-59";
+
+async function esperanzaGet(path: string): Promise<Record<string, never>[]> {
+  try {
+    const res = await fetch(`${ESPERANZA_SB_URL}/rest/v1/${path}`, {
+      headers: { apikey: ESPERANZA_SB_KEY, Authorization: `Bearer ${ESPERANZA_SB_KEY}` },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+function normalizeText(s: string | null | undefined): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sharesName(a: string | null | undefined, b: string | null | undefined): boolean {
+  const ta = new Set(normalizeText(a).split(" ").filter((t) => t.length >= 3));
+  const tb = new Set(normalizeText(b).split(" ").filter((t) => t.length >= 3));
+  if (ta.size === 0 || tb.size === 0) return false;
+  let shared = 0;
+  for (const t of ta) if (tb.has(t)) shared++;
+  return shared >= Math.min(2, Math.min(ta.size, tb.size));
+}
+
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const la1 = (a.lat * Math.PI) / 180;
+  const la2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// Su tabla `necesidades` usa categorías propias distintas a nuestro ReportType;
+// las mapeamos a lo más parecido que ya tenemos.
+const NECESIDAD_TIPO_TO_REPORT_TYPE: Partial<Record<string, ReportType>> = {
+  rescate: "atrapada",
+  derrumbe: "colapso",
+  refugio: "refugio",
+  agua_comida: "alimentos",
+  medicinas: "hospital_insumos",
+  otro: "peligro",
+  zona_sin_atender: "peligro",
+};
+
+// Solo el último lote importado (todas las filas de una misma carga comparten
+// el mismo `creado_en`), no los ~20.000 acumulados — si no, serían demasiados
+// pines para el mapa y en su mayoría ya viejos.
+export async function fetchEsperanzaMissing(): Promise<Report[]> {
+  const latest = await esperanzaGet("desaparecidos?select=creado_en&order=creado_en.desc&limit=1");
+  const cutoff = (latest[0] as { creado_en?: string } | undefined)?.creado_en;
+  if (!cutoff) return [];
+  const rows = await esperanzaGet(
+    `desaparecidos?select=id,nombre,fecha_desaparicion,ultima_ubicacion,lat,lng,contacto_familiar,creado_en&${VE_BBOX}&creado_en=eq.${encodeURIComponent(cutoff)}&limit=500`
+  );
+  return (rows as unknown as {
+    id: string; nombre: string | null; fecha_desaparicion: string | null; ultima_ubicacion: string | null;
+    lat: number | null; lng: number | null; contacto_familiar: string | null; creado_en: string;
+  }[])
+    .filter((r) => r.lat != null && r.lng != null)
+    .map((r) => ({
+      id: `esperanza-desaparecido-${r.id}`,
+      type: "persona_desaparecida" as ReportType,
+      lat: r.lat as number,
+      lng: r.lng as number,
+      place: r.ultima_ubicacion || "",
+      description: `Desaparecido/a desde ${r.fecha_desaparicion || "fecha sin precisar"} — última ubicación: ${r.ultima_ubicacion || "sin precisar"}.`,
+      urgency: "alta",
+      status: "sin_verificar",
+      people: 1,
+      confidence: 40,
+      vc_confirm: 0,
+      vc_attended: 0,
+      vc_incorrect: 0,
+      vc_resolved: 0,
+      reporter_name: "Comunidad (Red de Esperanza)",
+      contact_phone: r.contacto_familiar,
+      details: { nombre: r.nombre || "" },
+      media: [],
+      created_at: r.creado_en,
+      external: ESPERANZA_SOURCE,
+    })) as Report[];
+}
+
+export async function fetchEsperanzaNeeds(): Promise<Report[]> {
+  const rows = await esperanzaGet(
+    `necesidades?select=id,tipo,urgencia,descripcion,lat,lng,zona,creado_en&${VE_BBOX}&limit=1000`
+  );
+  return (rows as unknown as {
+    id: string; tipo: string; urgencia: string | null; descripcion: string | null;
+    lat: number | null; lng: number | null; zona: string | null; creado_en: string;
+  }[])
+    .filter((r) => r.lat != null && r.lng != null)
+    .map((r) => ({
+      id: `esperanza-necesidad-${r.id}`,
+      type: NECESIDAD_TIPO_TO_REPORT_TYPE[r.tipo] ?? "peligro",
+      lat: r.lat as number,
+      lng: r.lng as number,
+      place: r.zona || "",
+      description: r.descripcion || "(Sin descripción)",
+      urgency: r.urgencia === "alta" ? "alta" : r.urgencia === "media" ? "media" : "baja",
+      status: "sin_verificar",
+      people: 0,
+      confidence: 40,
+      vc_confirm: 0,
+      vc_attended: 0,
+      vc_incorrect: 0,
+      vc_resolved: 0,
+      reporter_name: "Comunidad (Red de Esperanza)",
+      contact_phone: null,
+      details: {},
+      media: [],
+      created_at: r.creado_en,
+      external: ESPERANZA_SOURCE,
+    })) as Report[];
+}
+
+export async function fetchEsperanzaCollectionCenters(): Promise<Report[]> {
+  const rows = await esperanzaGet(
+    `centros_acopio?select=id,nombre,descripcion,direccion,lat,lng,creado_en,contacto&${VE_BBOX}&limit=200`
+  );
+  return (rows as unknown as {
+    id: string; nombre: string | null; descripcion: string | null; direccion: string | null;
+    lat: number | null; lng: number | null; creado_en: string; contacto: string | null;
+  }[])
+    .filter((r) => r.lat != null && r.lng != null)
+    .map((r) => ({
+      id: `esperanza-acopio-${r.id}`,
+      type: "ayuda" as ReportType,
+      lat: r.lat as number,
+      lng: r.lng as number,
+      place: [r.nombre, r.direccion].filter(Boolean).join(", "),
+      description: r.descripcion || "Centro de acopio",
+      urgency: "baja",
+      status: "sin_verificar",
+      people: 0,
+      confidence: 40,
+      vc_confirm: 0,
+      vc_attended: 0,
+      vc_incorrect: 0,
+      vc_resolved: 0,
+      reporter_name: "Comunidad (Red de Esperanza)",
+      contact_phone: r.contacto,
+      details: {},
+      media: [],
+      created_at: r.creado_en,
+      external: ESPERANZA_SOURCE,
+    })) as Report[];
+}
+
+// Evita duplicar algo que ya tenemos reportado nosotros mismos: mismo tipo,
+// cerca en el mapa, y (cuando hay nombre) nombre parecido.
+export function dedupeEsperanza(externalRows: Report[], localReports: Report[]): Report[] {
+  return externalRows.filter(
+    (ext) =>
+      !localReports.some((local) => {
+        if (local.type !== ext.type) return false;
+        const dist = haversineKm({ lat: ext.lat, lng: ext.lng }, { lat: local.lat, lng: local.lng });
+        const radiusKm = ext.type === "persona_desaparecida" ? 5 : ext.type === "ayuda" ? 1 : 0.3;
+        if (dist > radiusKm) return false;
+        if (ext.type === "persona_desaparecida") return sharesName(ext.details?.nombre, local.details?.nombre);
+        if (ext.type === "ayuda") return sharesName(ext.place, local.place);
+        return true; // necesidades: mismo tipo + cerca ya cuenta como duplicado
+      })
+  );
+}
