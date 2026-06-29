@@ -230,7 +230,7 @@ function storagePath(url: string): string | null {
   return i === -1 ? null : url.slice(i + marker.length);
 }
 
-function compressImage(file: File, maxDim: number, quality: number): Promise<Blob> {
+export function compressImage(file: File, maxDim: number, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
