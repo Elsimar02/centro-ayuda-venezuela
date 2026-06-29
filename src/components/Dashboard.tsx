@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useReports } from "@/hooks/useReports";
 import { useExternalPets } from "@/hooks/useExternalPets";
+import { useEsperanzaExternal } from "@/hooks/useEsperanzaExternal";
 import { useExternalVolunteers } from "@/hooks/useExternalVolunteers";
 import { usePresence } from "@/hooks/usePresence";
 import { useTheme } from "@/lib/theme";
@@ -321,6 +322,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const { reports, moderate, submit, verify } = useReports();
   const { follows, toggle: toggleFollow } = useFollows();
   const externalPets = useExternalPets();
+  const externalEsperanza = useEsperanzaExternal(reports);
   const connectedUsers = usePresence();
   const { theme, toggleTheme } = useTheme();
   const { t, catLabel } = useLanguage();
@@ -395,7 +397,11 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
     }
   }
 
-  const pending = useMemo(() => reports.filter((r) => r.status === "sin_verificar"), [reports]);
+  const allReports = useMemo(
+    () => [...reports, ...externalPets, ...externalEsperanza],
+    [reports, externalPets, externalEsperanza]
+  );
+  const pending = useMemo(() => allReports.filter((r) => r.status === "sin_verificar"), [allReports]);
   const followAlerts = useMemo(
     () =>
       follows.reduce((acc, f) => {
@@ -404,7 +410,6 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
       }, 0),
     [follows, reports]
   );
-  const allReports = useMemo(() => [...reports, ...externalPets], [reports, externalPets]);
   const selectedReport = selected ? allReports.find((r) => r.id === selected.id) ?? selected : null;
 
   const [reportFilter, setReportFilterRaw] = useState("todos");
@@ -438,15 +443,15 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const pagedReports = searchedReports.slice((reportPage - 1) * REPORTS_PER_PAGE, reportPage * REPORTS_PER_PAGE);
 
   const statCards = useMemo(() => {
-    const byStatus = (s: string) => reports.filter((r) => r.status === s).length;
+    const byStatus = (s: string) => allReports.filter((r) => r.status === s).length;
     return [
-      { icon: "📋", label: "Total reportes", value: reports.length },
+      { icon: "📋", label: "Total reportes", value: allReports.length },
       { icon: "🆘", label: "Sin verificar", value: byStatus("sin_verificar") },
       { icon: "🔄", label: "En proceso", value: byStatus("en_proceso") },
       { icon: "✓", label: "Verificados", value: byStatus("verificado") },
       { icon: "⚑", label: "Falsos", value: byStatus("falso") },
     ];
-  }, [reports]);
+  }, [allReports]);
 
   // Las acciones de moderar (verificar/marcar falso/eliminar) solo existen en /admin.
   // En la página pública, un reporte se "marca" con confirm/attended/incorrect (verify),
