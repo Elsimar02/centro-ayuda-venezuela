@@ -14,6 +14,7 @@ import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
+import { MarketplaceView } from "@/components/MarketplaceView";
 import { SeismicActivity } from "@/components/SeismicActivity";
 import { CATS, FILTER_DISCLAIMERS, MAP_FILTERS, Report, ReportType, STATUS } from "@/lib/types";
 import { telLink } from "@/lib/contact";
@@ -30,6 +31,7 @@ const NAV = [
   { id: "siguiendo", icon: "⭐", label: "Siguiendo" },
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
+  { id: "marketplace", icon: "🤝", label: "Marketplace Solidario" },
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
   { id: "encuentro_seguro", icon: "👨‍👩‍👧", label: "Encuentro Seguro" },
   { id: "donaciones", icon: "💜", label: "Donaciones" },
@@ -867,6 +869,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
               </div>
             </div>
           )}
+
+          {section === "marketplace" && <MarketplaceView />}
 
           {section === "grupos" && <LinkCardGrid items={COMM_GROUPS} />}
 
