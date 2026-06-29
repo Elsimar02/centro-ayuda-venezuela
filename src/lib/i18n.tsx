@@ -21,6 +21,7 @@ const UI: Record<Lang, Record<string, string>> = {
     "nav.reportes": "Reportes",
     "nav.siguiendo": "Siguiendo",
     "nav.moderacion": "Moderación",
+    "nav.necesidades_admin": "Necesidades Humanitarias",
     "nav.mapa": "Mapa operativo",
     "nav.grupos": "Grupos de comunicación",
     "nav.encuentro_seguro": "Encuentro Seguro",

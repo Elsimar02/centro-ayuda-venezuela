@@ -13,6 +13,8 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReportRow } from "@/components/ReportRow";
 import { ReportForm } from "@/components/ReportForm";
 import { AiQuickReport } from "@/components/AiQuickReport";
+import { NeedsForm } from "@/components/NeedsForm";
+import { NeedsAdminDashboard } from "@/components/NeedsAdminDashboard";
 import { ReportDetailPanel } from "@/components/ReportDetailPanel";
 import { CitizenMapView } from "@/components/CitizenMapView";
 import { SeismicActivity } from "@/components/SeismicActivity";
@@ -30,6 +32,7 @@ const NAV = [
   { id: "reportes", icon: "📋", label: "Reportes" },
   { id: "siguiendo", icon: "⭐", label: "Siguiendo" },
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
+  { id: "necesidades_admin", icon: "🆘", label: "Necesidades Humanitarias", adminOnly: true },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
   { id: "encuentro_seguro", icon: "👨‍👩‍👧", label: "Encuentro Seguro" },
@@ -323,6 +326,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const { volunteers: externalVolunteers, loading: loadingVolunteers } = useExternalVolunteers(section === "voluntariado");
   const [showReport, setShowReport] = useState(false);
   const [aiDraft, setAiDraft] = useState<Partial<Draft> | null>(null);
+  const [showNeeds, setShowNeeds] = useState(false);
   const [selected, setSelected] = useState<Report | null>(null);
   const [showFullMap, setShowFullMap] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -569,7 +573,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
         className="sticky top-[57px] z-20 flex gap-2 overflow-x-auto px-3 py-2 md:hidden"
         style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
       >
-        {NAV.map((n) => (
+        {NAV.filter((n) => !("adminOnly" in n && n.adminOnly) || canModerate).map((n) => (
           <button type="button"
             key={n.id}
             onClick={() => setSection(n.id)}
@@ -603,7 +607,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           className="hidden w-56 flex-shrink-0 flex-col gap-1 p-4 md:flex"
           style={{ borderRight: "1px solid var(--border)", background: "var(--surface)" }}
         >
-          <NavList section={section} pending={pending.length} followAlerts={followAlerts} onSelect={setSection} />
+          <NavList section={section} pending={pending.length} followAlerts={followAlerts} canModerate={canModerate} onSelect={setSection} />
         </aside>
 
         {navOpen && (
@@ -626,6 +630,7 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 section={section}
                 pending={pending.length}
                 followAlerts={followAlerts}
+                canModerate={canModerate}
                 onSelect={(id) => {
                   setSection(id);
                   setNavOpen(false);
@@ -646,6 +651,16 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                   setShowReport(true);
                 }}
               />
+
+              <button
+                type="button"
+                onClick={() => setShowNeeds(true)}
+                className="flex w-full items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left text-sm font-extrabold text-white"
+                style={{ borderColor: "#dc2626", background: "#dc2626" }}
+              >
+                <span className="text-lg">🆘</span>
+                Necesidades Humanitarias — registra qué necesita una familia para sobrevivir
+              </button>
 
               <div
                 className="flex flex-col items-start gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -859,6 +874,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
             </a>
           )}
 
+          {section === "necesidades_admin" && <NeedsAdminDashboard theme={theme} />}
+
           {section === "mapa" && (
             <div className="flex flex-col gap-3">
               <FilterChips value={reportFilter} onChange={setReportFilter} />
@@ -1046,6 +1063,8 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
         />
       )}
 
+      {showNeeds && <NeedsForm onClose={() => setShowNeeds(false)} />}
+
       {selectedReport && (
         <ReportDetailPanel
           report={selectedReport}
@@ -1067,17 +1086,19 @@ function NavList({
   section,
   pending,
   followAlerts = 0,
+  canModerate = false,
   onSelect,
 }: {
   section: Section;
   pending: number;
   followAlerts?: number;
+  canModerate?: boolean;
   onSelect: (id: Section) => void;
 }) {
   const { t } = useLanguage();
   return (
     <>
-      {NAV.map((n) => (
+      {NAV.filter((n) => !("adminOnly" in n && n.adminOnly) || canModerate).map((n) => (
         <button type="button"
           key={n.id}
           onClick={() => onSelect(n.id)}
