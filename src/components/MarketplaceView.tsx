@@ -1,8 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { QuieroAyudarForm } from "@/components/QuieroAyudarForm";
 import { waLink, telLink } from "@/lib/contact";
+import { useTheme } from "@/lib/theme";
 import {
   AidProvider,
   KIND_CONFIG,
@@ -16,9 +18,14 @@ import {
   resourceLabel,
 } from "@/lib/marketplace";
 
+const MarketplaceMap = dynamic(() => import("@/components/MarketplaceMap"), { ssr: false });
+
 type Mode = "todos" | "ofrecen" | "necesitan";
+type View = "catalogo" | "mapa";
 
 export function MarketplaceView() {
+  const { theme } = useTheme();
+  const [view, setView] = useState<View>("catalogo");
   const [providers, setProviders] = useState<AidProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -27,6 +34,8 @@ export function MarketplaceView() {
   const [kindFilter, setKindFilter] = useState<ProviderKind | "todos">("todos");
   const [resourceFilter, setResourceFilter] = useState<string | "todos">("todos");
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [showOffersLayer, setShowOffersLayer] = useState(true);
+  const [showNeedsLayer, setShowNeedsLayer] = useState(true);
 
   async function load() {
     setLoading(true);
@@ -128,6 +137,25 @@ export function MarketplaceView() {
         </div>
       </div>
 
+      {/* Toggle Catálogo / Mapa */}
+      <div className="flex gap-2">
+        {(["catalogo", "mapa"] as View[]).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setView(v)}
+            className="h-10 flex-1 rounded-xl border text-sm font-bold"
+            style={
+              view === v
+                ? { borderColor: "var(--accent)", background: "var(--accent-soft)", color: "var(--accent)" }
+                : { borderColor: "var(--border)", color: "var(--fg-2)" }
+            }
+          >
+            {v === "catalogo" ? "📋 Catálogo" : "🗺️ Mapa"}
+          </button>
+        ))}
+      </div>
+
       {/* Filtros */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -197,9 +225,52 @@ export function MarketplaceView() {
         </div>
       </div>
 
-      {/* Catálogo */}
+      {/* Catálogo o mapa */}
       {loading ? (
         <p className="py-10 text-center text-sm" style={{ color: "var(--muted)" }}>Cargando directorio...</p>
+      ) : view === "mapa" ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setShowOffersLayer((v) => !v)}
+              className="h-9 rounded-full border px-3 text-xs font-bold"
+              style={
+                showOffersLayer
+                  ? { borderColor: "#16a34a", background: "#16a34a1f", color: "#16a34a" }
+                  : { borderColor: "var(--border)", color: "var(--fg-2)" }
+              }
+            >
+              🟢 Recursos disponibles ({stats.ofrecen})
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowNeedsLayer((v) => !v)}
+              className="h-9 rounded-full border px-3 text-xs font-bold"
+              style={
+                showNeedsLayer
+                  ? { borderColor: "#dc2626", background: "#dc26261f", color: "#dc2626" }
+                  : { borderColor: "var(--border)", color: "var(--fg-2)" }
+              }
+            >
+              🔴 Necesidades ({stats.necesitan})
+            </button>
+          </div>
+          <div
+            className="overflow-hidden rounded-2xl border"
+            style={{ borderColor: "var(--border)", height: "calc(100vh - 380px)", minHeight: 420 }}
+          >
+            <MarketplaceMap
+              providers={filtered}
+              theme={theme}
+              center={userLoc ? [userLoc.lat, userLoc.lng] : [8, -66]}
+              zoom={userLoc ? 12 : 6}
+              showOffers={showOffersLayer}
+              showNeeds={showNeedsLayer}
+              userLoc={userLoc}
+            />
+          </div>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-center">
           <span className="text-4xl">🫶</span>
