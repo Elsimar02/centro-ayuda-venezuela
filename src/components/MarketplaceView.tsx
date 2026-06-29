@@ -8,12 +8,16 @@ import { useTheme } from "@/lib/theme";
 import {
   AidProvider,
   KIND_CONFIG,
+  NeedEntry,
   PROVIDER_KINDS,
   ProviderKind,
   RESOURCES,
   RESOURCE_MAP,
   distanceKm,
+  fetchNeedEntries,
   fetchProviders,
+  needResourceEmoji,
+  needResourceLabel,
   resourceEmoji,
   resourceLabel,
 } from "@/lib/marketplace";
@@ -27,6 +31,7 @@ export function MarketplaceView() {
   const { theme } = useTheme();
   const [view, setView] = useState<View>("catalogo");
   const [providers, setProviders] = useState<AidProvider[]>([]);
+  const [needEntries, setNeedEntries] = useState<NeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
@@ -40,7 +45,9 @@ export function MarketplaceView() {
   async function load() {
     setLoading(true);
     try {
-      setProviders(await fetchProviders());
+      const [p, n] = await Promise.all([fetchProviders(), fetchNeedEntries()]);
+      setProviders(p);
+      setNeedEntries(n);
     } finally {
       setLoading(false);
     }
@@ -49,9 +56,13 @@ export function MarketplaceView() {
   useEffect(() => {
     let ignore = false;
     (async () => {
-      const data = await fetchProviders().catch(() => [] as AidProvider[]);
+      const [p, n] = await Promise.all([
+        fetchProviders().catch(() => [] as AidProvider[]),
+        fetchNeedEntries().catch(() => [] as NeedEntry[]),
+      ]);
       if (!ignore) {
-        setProviders(data);
+        setProviders(p);
+        setNeedEntries(n);
         setLoading(false);
       }
     })();
@@ -92,6 +103,25 @@ export function MarketplaceView() {
     return list;
   }, [providers, search, mode, kindFilter, resourceFilter, userLoc]);
 
+  // Necesidades humanitarias (módulo aparte) que también caben en la vista
+  // "necesitan": solo aplica búsqueda y kindFilter no las afecta (no tienen tipo
+  // de colaborador) y resourceFilter usa claves propias, así que solo filtramos
+  // por texto cuando el usuario busca algo.
+  const filteredNeeds = useMemo(() => {
+    if (mode === "ofrecen") return [];
+    const q = search.trim().toLowerCase();
+    let list = needEntries;
+    if (q)
+      list = list.filter((n) =>
+        [n.name, n.place, n.notes, ...n.needs.map(needResourceLabel)].join(" ").toLowerCase().includes(q)
+      );
+    if (userLoc)
+      list = [...list]
+        .filter((n) => n.lat != null && n.lng != null)
+        .sort((a, b) => distanceKm(userLoc, a as { lat: number; lng: number }) - distanceKm(userLoc, b as { lat: number; lng: number }));
+    return list;
+  }, [needEntries, search, mode, userLoc]);
+
   // Recursos presentes en el directorio (para no llenar el filtro de opciones vacías).
   const presentResources = useMemo(() => {
     const set = new Set<string>();
@@ -104,9 +134,9 @@ export function MarketplaceView() {
     return {
       total: active.length,
       ofrecen: active.filter((p) => p.offers.length > 0).length,
-      necesitan: active.filter((p) => p.needs.length > 0).length,
+      necesitan: active.filter((p) => p.needs.length > 0).length + needEntries.length,
     };
-  }, [providers]);
+  }, [providers, needEntries]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -262,6 +292,7 @@ export function MarketplaceView() {
           >
             <MarketplaceMap
               providers={filtered}
+              needEntries={filteredNeeds}
               theme={theme}
               center={userLoc ? [userLoc.lat, userLoc.lng] : [8, -66]}
               zoom={userLoc ? 12 : 6}
@@ -271,19 +302,22 @@ export function MarketplaceView() {
             />
           </div>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : filtered.length === 0 && filteredNeeds.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-center">
           <span className="text-4xl">🫶</span>
           <p className="text-sm font-semibold" style={{ color: "var(--fg-2)" }}>
-            {providers.length === 0
-              ? "Aún no hay colaboradores. ¡Sé el primero en registrarte!"
-              : "No hay colaboradores con esos filtros."}
+            {providers.length === 0 && needEntries.length === 0
+              ? "Aún no hay colaboradores ni necesidades registradas. ¡Sé el primero en registrarte!"
+              : "No hay resultados con esos filtros."}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (
             <ProviderCard key={p.id} provider={p} userLoc={userLoc} />
+          ))}
+          {filteredNeeds.map((n) => (
+            <NeedEntryCard key={n.id} entry={n} userLoc={userLoc} />
           ))}
         </div>
       )}
@@ -379,6 +413,94 @@ function ProviderCard({ provider: p, userLoc }: { provider: AidProvider; userLoc
         {p.email && (
           <a
             href={`mailto:${p.email}`}
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
+            style={{ borderColor: "var(--border)", color: "var(--fg)" }}
+          >
+            ✉️ Correo
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NeedEntryCard({ entry: n, userLoc }: { entry: NeedEntry; userLoc: { lat: number; lng: number } | null }) {
+  const wa = n.whatsapp ? waLink(n.whatsapp) : null;
+  const dist = userLoc && n.lat != null && n.lng != null ? distanceKm(userLoc, { lat: n.lat, lng: n.lng }) : null;
+
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-2xl border p-4"
+      style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-2xl" style={{ background: "var(--surface-2)" }}>
+          🆘
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-base font-extrabold" style={{ color: "var(--fg)" }}>{n.name}</div>
+          <div className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
+            Necesidad humanitaria{n.place ? ` · ${n.place}` : ""}
+          </div>
+          {dist != null && (
+            <div className="text-xs font-bold" style={{ color: "var(--accent)" }}>
+              a {dist < 1 ? "menos de 1" : Math.round(dist)} km
+            </div>
+          )}
+        </div>
+        <span
+          className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+          style={{ background: "rgba(220,38,38,.15)", color: "#dc2626" }}
+        >
+          Necesita ayuda
+        </span>
+      </div>
+
+      {n.needs.length > 0 && (
+        <div>
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--muted)" }}>
+            Necesita
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {n.needs.map((key) => (
+              <span
+                key={key}
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={{ background: "#dc262614", color: "#dc2626" }}
+              >
+                {needResourceEmoji(key)} {needResourceLabel(key)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {n.notes && <p className="text-xs" style={{ color: "var(--fg-2)" }}>{n.notes}</p>}
+
+      <div className="mt-auto flex flex-wrap gap-2 pt-1">
+        {wa && (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold text-white"
+            style={{ background: "#16a34a" }}
+          >
+            💬 WhatsApp
+          </a>
+        )}
+        {n.phone && (
+          <a
+            href={telLink(n.phone)}
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
+            style={{ borderColor: "var(--border)", color: "var(--fg)" }}
+          >
+            ☎️ Llamar
+          </a>
+        )}
+        {n.email && (
+          <a
+            href={`mailto:${n.email}`}
             className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
             style={{ borderColor: "var(--border)", color: "var(--fg)" }}
           >

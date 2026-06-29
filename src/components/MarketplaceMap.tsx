@@ -5,7 +5,15 @@ import { Circle, MapContainer, Marker, Popup, TileLayer, ZoomControl } from "rea
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { waLink, telLink } from "@/lib/contact";
-import { AidProvider, KIND_CONFIG, resourceEmoji, resourceLabel } from "@/lib/marketplace";
+import {
+  AidProvider,
+  KIND_CONFIG,
+  NeedEntry,
+  needResourceEmoji,
+  needResourceLabel,
+  resourceEmoji,
+  resourceLabel,
+} from "@/lib/marketplace";
 
 function tileUrl(theme: "light" | "dark") {
   return theme === "dark"
@@ -68,8 +76,46 @@ const ProviderMarker = memo(function ProviderMarker({
   );
 });
 
+// Necesidades que vienen del módulo "Necesidades Humanitarias" (tabla
+// `necesidades`), mostradas con el mismo pin rojo que un colaborador que
+// "necesita", pero usando su propio catálogo de etiquetas (NEEDS_LIST).
+const NeedMarker = memo(function NeedMarker({ entry: n }: { entry: NeedEntry }) {
+  if (n.lat == null || n.lng == null) return null;
+  const wa = n.whatsapp ? waLink(n.whatsapp) : null;
+  return (
+    <Marker position={[n.lat, n.lng]} icon={layerIcon("need", "🆘")}>
+      <Popup>
+        <div className="flex flex-col gap-1.5" style={{ minWidth: 180 }}>
+          <div className="text-sm font-extrabold">🆘 {n.name}</div>
+          <div className="text-xs" style={{ color: "#6b7280" }}>Necesidad humanitaria{n.place ? ` · ${n.place}` : ""}</div>
+          <div className="flex flex-wrap gap-1 pt-1">
+            {n.needs.map((key) => (
+              <span key={key} className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: "#dc26261f", color: "#dc2626" }}>
+                {needResourceEmoji(key)} {needResourceLabel(key)}
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-1.5 pt-1.5">
+            {wa && (
+              <a href={wa} target="_blank" rel="noopener noreferrer" className="rounded-md px-2 py-1 text-[11px] font-bold text-white" style={{ background: "#16a34a" }}>
+                💬 WhatsApp
+              </a>
+            )}
+            {n.phone && (
+              <a href={telLink(n.phone)} className="rounded-md border px-2 py-1 text-[11px] font-bold">
+                ☎️ Llamar
+              </a>
+            )}
+          </div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+});
+
 export default function MarketplaceMap({
   providers,
+  needEntries = [],
   theme,
   center,
   zoom = 7,
@@ -78,6 +124,7 @@ export default function MarketplaceMap({
   userLoc,
 }: {
   providers: AidProvider[];
+  needEntries?: NeedEntry[];
   theme: "light" | "dark";
   center: [number, number];
   zoom?: number;
@@ -96,9 +143,12 @@ export default function MarketplaceMap({
   const needMarkers = useMemo(
     () =>
       showNeeds
-        ? providers.filter((p) => p.needs.length > 0).map((p) => <ProviderMarker key={`n-${p.id}`} provider={p} layer="need" />)
+        ? [
+            ...providers.filter((p) => p.needs.length > 0).map((p) => <ProviderMarker key={`n-${p.id}`} provider={p} layer="need" />),
+            ...needEntries.filter((n) => n.lat != null && n.lng != null).map((n) => <NeedMarker key={`nh-${n.id}`} entry={n} />),
+          ]
         : [],
-    [providers, showNeeds]
+    [providers, needEntries, showNeeds]
   );
 
   return (
