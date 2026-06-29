@@ -1,4 +1,6 @@
 import { supabase } from "./supabase";
+import { fetchNeeds } from "./needsApi";
+import { NEEDS_LIST, NeedReport } from "./needs";
 
 // ── Marketplace Solidario ──────────────────────────────────────────────
 // Directorio de colaboradores que ofrecen y/o necesitan recursos durante el
@@ -178,6 +180,64 @@ export function findOffersFor(
     out.push({ provider: p, distanceKm: d, score });
   }
   return out.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+// ── Puente con "Necesidades Humanitarias" (tabla `necesidades`) ──
+// Ese módulo usa su propio catálogo de claves (NEEDS_LIST) distinto al de
+// RESOURCES. Para mostrarlas dentro del Marketplace (lista y mapa de
+// "necesitan") las adaptamos a una forma común sin tocar su tabla ni su modelo.
+export type NeedEntry = {
+  id: string;
+  source: "necesidad";
+  name: string;
+  place: string;
+  lat: number | null;
+  lng: number | null;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  needs: string[]; // claves de NEEDS_LIST
+  notes: string;
+  created_at: string;
+};
+
+const NEED_LABEL_MAP: Record<string, { label: string; emoji: string }> = Object.fromEntries(
+  NEEDS_LIST.map((n) => [n.key, { label: n.label, emoji: n.emoji }])
+);
+
+export function needResourceLabel(key: string): string {
+  return NEED_LABEL_MAP[key]?.label ?? key;
+}
+export function needResourceEmoji(key: string): string {
+  return NEED_LABEL_MAP[key]?.emoji ?? "•";
+}
+
+function placeForNeed(n: NeedReport): string {
+  return [n.direccion, n.parroquia, n.municipio, n.estado].filter(Boolean).join(", ");
+}
+
+function needToEntry(n: NeedReport): NeedEntry {
+  return {
+    id: n.id,
+    source: "necesidad",
+    name: n.contact_name || "Familia / comunidad",
+    place: placeForNeed(n),
+    lat: n.lat,
+    lng: n.lng,
+    phone: n.contact_phone || null,
+    whatsapp: n.contact_whatsapp || null,
+    email: n.contact_email || null,
+    needs: n.needs,
+    notes: n.description,
+    created_at: n.created_at,
+  };
+}
+
+// Solo casos activos (no resueltos ni descartados como falsos) tiene sentido
+// mostrar como "necesidad abierta" en el marketplace.
+export async function fetchNeedEntries(): Promise<NeedEntry[]> {
+  const rows = await fetchNeeds();
+  return rows.filter((n) => n.status === "sin_verificar" || n.status === "en_proceso").map(needToEntry);
 }
 
 // ── Queries ──
