@@ -696,12 +696,17 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           {section === "reportes" && (
             <div className="flex flex-col gap-3">
               <FilterChips value={reportFilter} onChange={setReportFilter} />
-              {FILTER_DISCLAIMERS[reportFilter] && (
-                <div
-                  className="rounded-xl px-3.5 py-2.5 text-xs font-bold leading-relaxed"
-                  style={{ background: "rgba(124,58,237,.12)", border: "1px solid rgba(124,58,237,.3)", color: "#7c3aed" }}
-                >
-                  {FILTER_DISCLAIMERS[reportFilter]}
+              {(FILTER_DISCLAIMERS[reportFilter] || reportFilter === "personas") && (
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  {FILTER_DISCLAIMERS[reportFilter] && (
+                    <div
+                      className="flex-1 rounded-xl px-3.5 py-2.5 text-xs font-bold leading-relaxed"
+                      style={{ background: "rgba(124,58,237,.12)", border: "1px solid rgba(124,58,237,.3)", color: "#7c3aed" }}
+                    >
+                      {FILTER_DISCLAIMERS[reportFilter]}
+                    </div>
+                  )}
+                  {reportFilter === "personas" && <LocalizaPacientesCard />}
                 </div>
               )}
               <input
@@ -993,6 +998,32 @@ function NavList({
         </button>
       ))}
     </>
+  );
+}
+
+const LOCALIZA_PACIENTES_URL = "https://localizapacientes.com";
+
+function LocalizaPacientesCard() {
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(LOCALIZA_PACIENTES_URL)}`;
+  return (
+    <a
+      href={LOCALIZA_PACIENTES_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex flex-shrink-0 items-center gap-3 rounded-xl border p-3 sm:w-72"
+      style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={qrUrl} alt="" width={64} height={64} className="flex-shrink-0 rounded-lg" style={{ background: "#fff" }} />
+      <div>
+        <div className="text-xs font-extrabold" style={{ color: "var(--fg)" }}>
+          Centro Nacional de Localización de Personas
+        </div>
+        <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--muted)" }}>
+          Listas actualizadas · localizapacientes.com
+        </div>
+      </div>
+    </a>
   );
 }
 
