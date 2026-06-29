@@ -111,6 +111,11 @@ const VOLUNTEER_ORGS = [
     contact: "0414-1217882 / 0424-1723981 (confirmar)",
   },
   {
+    name: "Psicólogos Para Ti — Colegio de Psicólogos del Estado Bolívar",
+    desc: "Apoyo psicológico gratuito y confidencial tras los sismos. Te conectan con un psicólogo voluntario disponible, sin registro ni formularios.",
+    contact: "psicologosvoluntariosbolivar.com",
+  },
+  {
     name: "Arquidiócesis de Caracas — Parroquias solidarias",
     desc: "Llamado del arzobispo a activar redes de solidaridad. Centros en Parroquia El Buen Pastor (Bello Campo, Chacao), La Sagrada Familia (La Tahona) y Cáritas Nacional (Montalbán). Lleva donaciones o súmate.",
     contact: "IG @arquidiocesisdecaracas",
@@ -945,13 +950,28 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
                 Organizaciones que reciben voluntarios para la respuesta al terremoto. Fuente:{" "}
                 <span className="font-bold">redayudavenezuela.com</span>.
               </p>
-              {VOLUNTEER_ORGS.map((o) => (
-                <div key={o.name} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <div className="font-bold">{o.name}</div>
-                  <div className="text-sm" style={{ color: "var(--fg-2)" }}>{o.desc}</div>
-                  <div className="mt-1 text-xs font-bold" style={{ color: "var(--muted)" }}>{o.contact}</div>
-                </div>
-              ))}
+              {VOLUNTEER_ORGS.map((o) => {
+                const urlMatch = o.contact.match(/^[a-z0-9-]+\.(com|org|net|ve)\b/i);
+                return (
+                  <div key={o.name} className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <div className="font-bold">{o.name}</div>
+                    <div className="text-sm" style={{ color: "var(--fg-2)" }}>{o.desc}</div>
+                    {urlMatch ? (
+                      <a
+                        href={`https://${urlMatch[0]}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-block text-xs font-bold underline"
+                        style={{ color: "var(--accent)" }}
+                      >
+                        {o.contact}
+                      </a>
+                    ) : (
+                      <div className="mt-1 text-xs font-bold" style={{ color: "var(--muted)" }}>{o.contact}</div>
+                    )}
+                  </div>
+                );
+              })}
 
               <h2 className="mt-2 text-lg font-extrabold">🙋 Voluntarios individuales (en vivo)</h2>
               <p className="text-sm" style={{ color: "var(--muted)" }}>
