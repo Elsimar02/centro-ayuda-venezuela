@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { QuieroAyudarForm } from "@/components/QuieroAyudarForm";
 import { waLink, telLink } from "@/lib/contact";
 import { useTheme } from "@/lib/theme";
+import { useDemanoCentros } from "@/hooks/useDemanoCentros";
+import { DemanoCentro, demanoPlace } from "@/lib/demano";
 import {
   AidProvider,
   KIND_CONFIG,
@@ -41,6 +43,7 @@ export function MarketplaceView() {
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [showOffersLayer, setShowOffersLayer] = useState(true);
   const [showNeedsLayer, setShowNeedsLayer] = useState(true);
+  const { centros: demanoCentros, loading: loadingDemano } = useDemanoCentros(view === "catalogo");
 
   async function load() {
     setLoading(true);
@@ -322,6 +325,32 @@ export function MarketplaceView() {
         </div>
       )}
 
+      {view === "catalogo" && mode !== "ofrecen" && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg font-extrabold" style={{ color: "var(--fg)" }}>
+            🏥 Necesidades urgentes — De Mano en Mano Venezuela
+          </h2>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            Insumos pendientes por cubrir en hospitales y centros, en vivo desde demanoenmanove.org.
+          </p>
+          {loadingDemano && (
+            <div className="rounded-2xl border p-4 text-center text-sm" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+              Cargando…
+            </div>
+          )}
+          {!loadingDemano && demanoCentros.length === 0 && (
+            <div className="rounded-2xl border p-4 text-center text-sm" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+              No se pudo cargar la lista en este momento.
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {demanoCentros.map((c) => (
+              <DemanoCentroCard key={c.id} centro={c} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <QuieroAyudarForm
           onClose={() => setShowForm(false)}
@@ -507,6 +536,99 @@ function NeedEntryCard({ entry: n, userLoc }: { entry: NeedEntry; userLoc: { lat
             ✉️ Correo
           </a>
         )}
+      </div>
+    </div>
+  );
+}
+
+const URGENCIA_LABEL: Record<number, { label: string; color: string }> = {
+  3: { label: "Urgente", color: "#dc2626" },
+  2: { label: "Media", color: "#d97706" },
+  1: { label: "Baja", color: "#16a34a" },
+};
+
+function DemanoCentroCard({ centro: c }: { centro: DemanoCentro }) {
+  const place = demanoPlace(c);
+  const maxUrgencia = Math.max(...c.necesidades.map((n) => n.urgencia));
+  const urg = URGENCIA_LABEL[maxUrgencia] ?? { label: "Necesita ayuda", color: "#dc2626" };
+  const shown = c.necesidades.slice(0, 8);
+  const rest = c.necesidades.length - shown.length;
+  const wa = c.whatsapp_publico ? waLink(c.whatsapp_publico) : null;
+
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-2xl border p-4"
+      style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-2xl" style={{ background: "var(--surface-2)" }}>
+          🏥
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-base font-extrabold" style={{ color: "var(--fg)" }}>{c.nombre}</div>
+          <div className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
+            {c.tipo}
+            {place ? ` · ${place}` : ""}
+          </div>
+        </div>
+        <span
+          className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+          style={{ background: `${urg.color}26`, color: urg.color }}
+        >
+          {urg.label}
+        </span>
+      </div>
+
+      <div>
+        <div className="mb-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--muted)" }}>
+          Necesita ({c.necesidades.length} {c.necesidades.length === 1 ? "ítem" : "ítems"})
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {shown.map((n) => (
+            <span
+              key={n.id}
+              className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              style={{ background: "#dc262614", color: "#dc2626" }}
+              title={n.categoria}
+            >
+              {n.item} ({n.cantidad_pedida - n.cantidad_cubierta})
+            </span>
+          ))}
+          {rest > 0 && (
+            <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+              +{rest} más
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-auto flex flex-wrap gap-2 pt-1">
+        {wa && (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold text-white"
+            style={{ background: "#16a34a" }}
+          >
+            💬 WhatsApp
+          </a>
+        )}
+        {c.maps_url && (
+          <a
+            href={c.maps_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
+            style={{ borderColor: "var(--border)", color: "var(--fg)" }}
+          >
+            📍 Ver mapa
+          </a>
+        )}
+      </div>
+
+      <div className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>
+        Fuente: demanoenmanove.org · actualizado {new Date(c.actualizado).toLocaleDateString("es-VE")}
       </div>
     </div>
   );
