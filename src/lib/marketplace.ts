@@ -277,11 +277,21 @@ function needToEntry(n: NeedReport): NeedEntry {
   };
 }
 
-// Solo casos activos (no resueltos ni descartados como falsos) tiene sentido
-// mostrar como "necesidad abierta" en el marketplace.
+// Después de 48h un registro deja de mostrarse en el Marketplace (sigue
+// existiendo en su tabla original, solo se oculta aquí) para que la lista
+// no se llene de cosas viejas durante una emergencia que cambia rápido.
+const MARKETPLACE_FRESH_MS = 48 * 60 * 60 * 1000;
+function isFresh(createdAt: string): boolean {
+  return Date.now() - new Date(createdAt).getTime() <= MARKETPLACE_FRESH_MS;
+}
+
+// Solo casos activos (no resueltos ni descartados como falsos) y recientes
+// (últimas 48h) tiene sentido mostrar como "necesidad abierta" en el marketplace.
 export async function fetchNeedEntries(): Promise<NeedEntry[]> {
   const rows = await fetchNeeds();
-  return rows.filter((n) => n.status === "sin_verificar" || n.status === "en_proceso").map(needToEntry);
+  return rows
+    .filter((n) => (n.status === "sin_verificar" || n.status === "en_proceso") && isFresh(n.created_at))
+    .map(needToEntry);
 }
 
 // ── Puente con reportes mal-clasificados (tabla `reports`) ──
@@ -327,11 +337,13 @@ function misfiledReportToEntry(r: MisfiledReportRow): NeedEntry {
 }
 
 export async function fetchMisfiledNeedReports(): Promise<NeedEntry[]> {
+  const cutoff = new Date(Date.now() - MARKETPLACE_FRESH_MS).toISOString();
   const { data, error } = await supabase
     .from("reports")
     .select("id,type,lat,lng,place,description,reporter_name,contact_phone,details,media,created_at")
     .in("type", MISFILED_NEED_REPORT_TYPES)
     .in("status", ["sin_verificar", "verificado", "en_proceso"])
+    .gte("created_at", cutoff)
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw error;
@@ -350,12 +362,14 @@ function fromRow(r: Row): AidProvider {
 }
 
 export async function fetchProviders(): Promise<AidProvider[]> {
+  const cutoff = new Date(Date.now() - MARKETPLACE_FRESH_MS).toISOString();
   const PAGE = 1000;
   const all: Row[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("aid_providers")
       .select("*")
+      .gte("created_at", cutoff)
       .order("created_at", { ascending: false })
       .range(from, from + PAGE - 1);
     if (error) throw error;
