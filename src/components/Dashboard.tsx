@@ -7,7 +7,6 @@ import { useReports } from "@/hooks/useReports";
 import { useExternalPets } from "@/hooks/useExternalPets";
 import { useEsperanzaExternal } from "@/hooks/useEsperanzaExternal";
 import { useExternalVolunteers } from "@/hooks/useExternalVolunteers";
-import { usePresence } from "@/hooks/usePresence";
 import { useTheme } from "@/lib/theme";
 import { useLanguage } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -323,7 +322,6 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
   const { follows, toggle: toggleFollow } = useFollows();
   const externalPets = useExternalPets();
   const externalEsperanza = useEsperanzaExternal(reports);
-  const connectedUsers = usePresence();
   const { theme, toggleTheme } = useTheme();
   const { t, catLabel } = useLanguage();
   const [section, setSection] = useState<Section>("resumen");
@@ -501,13 +499,6 @@ export function Dashboard({ canModerate }: { canModerate: boolean }) {
           <div className="truncate text-sm font-extrabold">Centro de Coordinación</div>
         </div>
         <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
-          <span className="hidden text-xs font-bold sm:inline" style={{ color: "var(--muted)" }}>{connectedUsers} conectado(s)</span>
-          <span
-            className="flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-bold sm:hidden"
-            style={{ background: "var(--surface-2)", color: "var(--muted)" }}
-          >
-            ● {connectedUsers}
-          </span>
           <button type="button"
             onClick={() => setShowReport(true)}
             className="hidden h-9 items-center rounded-lg px-3.5 text-xs font-extrabold text-white sm:flex"
