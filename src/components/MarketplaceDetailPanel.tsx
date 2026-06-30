@@ -75,8 +75,29 @@ export function MarketplaceDetailPanel({ item, onClose }: { item: MarketplaceIte
         className="relative flex h-full w-full max-w-md flex-col overflow-y-auto"
         style={{ background: "var(--surface)", color: "var(--fg)", animation: "ccslidein .28s cubic-bezier(.16,1,.3,1)" }}
       >
+        {/* Barra fija: el cierre siempre vive aquí, nunca solo flotando sobre la
+            foto, para que sea confiable en móvil (toque grande, fondo sólido). */}
+        <div
+          className="sticky top-0 z-20 flex items-center justify-between gap-3 px-4 py-3"
+          style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
+        >
+          <span className="truncate text-sm font-bold" style={{ color: "var(--fg-2)" }}>{name}</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            aria-label="Cerrar"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-2xl"
+            style={{ background: "var(--surface-2)", color: "var(--fg)" }}
+          >
+            ×
+          </button>
+        </div>
+
         {/* Hero */}
-        <div className="relative h-56 w-full flex-shrink-0 overflow-hidden">
+        <div className="relative h-48 w-full flex-shrink-0 overflow-hidden">
           {heroPhoto ? (
             <Image src={heroPhoto} alt="" fill className="object-cover" />
           ) : (
@@ -86,15 +107,6 @@ export function MarketplaceDetailPanel({ item, onClose }: { item: MarketplaceIte
             className="absolute inset-0"
             style={{ background: "linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.65) 100%)" }}
           />
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-lg text-white"
-            style={{ background: "rgba(0,0,0,.35)" }}
-          >
-            ×
-          </button>
           {!heroPhoto && (
             <span className="absolute left-5 top-5 text-5xl drop-shadow-lg">{heroEmoji}</span>
           )}
@@ -187,6 +199,13 @@ export function MarketplaceDetailPanel({ item, onClose }: { item: MarketplaceIte
           )}
 
           <Section icon="📞" title="Contacto">
+            {(phone || whatsapp || email) && (
+              <div className="mb-2.5 flex flex-col gap-1 text-sm font-bold" style={{ color: "var(--fg)" }}>
+                {phone && <p>☎️ {phone}</p>}
+                {whatsapp && whatsapp !== phone && <p>💬 {whatsapp}</p>}
+                {email && <p>✉️ {email}</p>}
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               {wa && (
                 <a
