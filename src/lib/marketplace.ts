@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { fetchNeeds } from "./needsApi";
 import { NEEDS_LIST, NeedReport } from "./needs";
+import { MediaItem } from "./types";
 
 // ── Marketplace Solidario ──────────────────────────────────────────────
 // Directorio de colaboradores que ofrecen y/o necesitan recursos durante el
@@ -38,6 +39,7 @@ export type AidProvider = {
   schedule: string;
   notes: string;
   status: ProviderStatus;
+  media: MediaItem[];
   created_at: string;
 };
 
@@ -224,7 +226,10 @@ export function findOffersFor(
 // "necesitan") las adaptamos a una forma común sin tocar su tabla ni su modelo.
 export type NeedEntry = {
   id: string;
-  source: "necesidad";
+  // "necesidad": vino del módulo Necesidades Humanitarias (tabla `necesidades`).
+  // "reporte": alguien lo reportó por error en el formulario de reportes en vez
+  // de registrarse aquí (ver fetchMisfiledNeedReports más abajo).
+  source: "necesidad" | "reporte";
   name: string;
   place: string;
   lat: number | null;
@@ -232,8 +237,9 @@ export type NeedEntry = {
   phone: string | null;
   whatsapp: string | null;
   email: string | null;
-  needs: string[]; // claves de NEEDS_LIST
+  needs: string[]; // claves de NEEDS_LIST (vacío si viene de "reporte": usa notes en su lugar)
   notes: string;
+  media: MediaItem[];
   created_at: string;
 };
 
@@ -265,6 +271,8 @@ function needToEntry(n: NeedReport): NeedEntry {
     email: n.contact_email || null,
     needs: n.needs,
     notes: n.description,
+    // El detalle solo muestra fotos (no documentos/PDF como galería de imágenes).
+    media: (n.media ?? []).filter((m): m is { kind: "foto"; url: string } => m.kind === "foto"),
     created_at: n.created_at,
   };
 }
@@ -276,11 +284,69 @@ export async function fetchNeedEntries(): Promise<NeedEntry[]> {
   return rows.filter((n) => n.status === "sin_verificar" || n.status === "en_proceso").map(needToEntry);
 }
 
+// ── Puente con reportes mal-clasificados (tabla `reports`) ──
+// Algunas personas (hospitales pidiendo insumos, centros de acopio, refugios)
+// usan por error el formulario general de "Reportar" en vez de registrarse
+// aquí o en Necesidades Humanitarias. Esos reportes nunca aparecían en el
+// Marketplace. Detectamos los tipos que por definición SON una necesidad de
+// recursos (`hospital_insumos` = "hospital necesita insumos urgentes",
+// `ayuda` = "centro de ayuda/acopio") y los mostramos también en "Necesitan".
+const MISFILED_NEED_REPORT_TYPES = ["hospital_insumos", "ayuda"] as const;
+
+type MisfiledReportRow = {
+  id: string;
+  type: (typeof MISFILED_NEED_REPORT_TYPES)[number];
+  lat: number;
+  lng: number;
+  place: string;
+  description: string;
+  reporter_name: string;
+  contact_phone: string | null;
+  details: Record<string, string> | null;
+  media: MediaItem[] | null;
+  created_at: string;
+};
+
+function misfiledReportToEntry(r: MisfiledReportRow): NeedEntry {
+  const needText = r.details?.insumos?.trim() || r.description?.trim() || "";
+  return {
+    id: r.id,
+    source: "reporte",
+    name: r.reporter_name || (r.type === "hospital_insumos" ? "Hospital" : "Centro de ayuda / acopio"),
+    place: r.place,
+    lat: r.lat,
+    lng: r.lng,
+    phone: r.contact_phone,
+    whatsapp: r.contact_phone,
+    email: null,
+    needs: [],
+    notes: needText,
+    media: r.media ?? [],
+    created_at: r.created_at,
+  };
+}
+
+export async function fetchMisfiledNeedReports(): Promise<NeedEntry[]> {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("id,type,lat,lng,place,description,reporter_name,contact_phone,details,media,created_at")
+    .in("type", MISFILED_NEED_REPORT_TYPES)
+    .in("status", ["sin_verificar", "verificado", "en_proceso"])
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return ((data as MisfiledReportRow[]) ?? []).map(misfiledReportToEntry);
+}
+
 // ── Queries ──
-type Row = Omit<AidProvider, "offers" | "needs"> & { offers: string[] | null; needs: string[] | null };
+type Row = Omit<AidProvider, "offers" | "needs" | "media"> & {
+  offers: string[] | null;
+  needs: string[] | null;
+  media: MediaItem[] | null;
+};
 
 function fromRow(r: Row): AidProvider {
-  return { ...r, offers: r.offers ?? [], needs: r.needs ?? [] };
+  return { ...r, offers: r.offers ?? [], needs: r.needs ?? [], media: r.media ?? [] };
 }
 
 export async function fetchProviders(): Promise<AidProvider[]> {
@@ -317,6 +383,7 @@ export type NewProvider = {
   available_from: string | null;
   schedule: string;
   notes: string;
+  media: MediaItem[];
 };
 
 export async function submitProvider(p: NewProvider): Promise<void> {
@@ -337,6 +404,7 @@ export async function submitProvider(p: NewProvider): Promise<void> {
     available_from: p.availability === "programada" ? p.available_from : null,
     schedule: p.schedule.trim(),
     notes: p.notes.trim(),
+    media: p.media,
     status: "activo",
   };
   // Sin .select() para no chocar con RLS de lectura (mismo patrón que alert_subscriptions).

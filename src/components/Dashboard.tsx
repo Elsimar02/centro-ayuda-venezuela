@@ -35,7 +35,7 @@ const NAV = [
   { id: "moderacion", icon: "🛡️", label: "Moderación" },
   { id: "necesidades_admin", icon: "🆘", label: "Necesidades Humanitarias", adminOnly: true },
   { id: "mapa", icon: "🗺️", label: "Mapa operativo" },
-  { id: "marketplace", icon: "🤝", label: "Marketplace Solidario" },
+  { id: "marketplace", icon: "🤝", label: "Quiero Ayudar" },
   { id: "grupos", icon: "💬", label: "Grupos de comunicación" },
   { id: "encuentro_seguro", icon: "👨‍👩‍👧", label: "Encuentro Seguro" },
   { id: "donaciones", icon: "💜", label: "Donaciones" },

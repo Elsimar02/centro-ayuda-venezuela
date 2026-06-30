@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { QuieroAyudarForm } from "@/components/QuieroAyudarForm";
+import { MarketplaceDetailPanel, MarketplaceItem } from "@/components/MarketplaceDetailPanel";
 import { waLink, telLink } from "@/lib/contact";
 import { useTheme } from "@/lib/theme";
 import { useDemanoCentros } from "@/hooks/useDemanoCentros";
@@ -16,6 +17,7 @@ import {
   RESOURCES,
   RESOURCE_MAP,
   distanceKm,
+  fetchMisfiledNeedReports,
   fetchNeedEntries,
   fetchProviders,
   needResourceEmoji,
@@ -43,14 +45,15 @@ export function MarketplaceView() {
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [showOffersLayer, setShowOffersLayer] = useState(true);
   const [showNeedsLayer, setShowNeedsLayer] = useState(true);
+  const [selected, setSelected] = useState<MarketplaceItem | null>(null);
   const { centros: demanoCentros, loading: loadingDemano } = useDemanoCentros(view === "catalogo");
 
   async function load() {
     setLoading(true);
     try {
-      const [p, n] = await Promise.all([fetchProviders(), fetchNeedEntries()]);
+      const [p, n, m] = await Promise.all([fetchProviders(), fetchNeedEntries(), fetchMisfiledNeedReports()]);
       setProviders(p);
-      setNeedEntries(n);
+      setNeedEntries([...n, ...m]);
     } finally {
       setLoading(false);
     }
@@ -59,13 +62,14 @@ export function MarketplaceView() {
   useEffect(() => {
     let ignore = false;
     (async () => {
-      const [p, n] = await Promise.all([
+      const [p, n, m] = await Promise.all([
         fetchProviders().catch(() => [] as AidProvider[]),
         fetchNeedEntries().catch(() => [] as NeedEntry[]),
+        fetchMisfiledNeedReports().catch(() => [] as NeedEntry[]),
       ]);
       if (!ignore) {
         setProviders(p);
-        setNeedEntries(n);
+        setNeedEntries([...n, ...m]);
         setLoading(false);
       }
     })();
@@ -149,7 +153,7 @@ export function MarketplaceView() {
         style={{ background: "var(--accent-soft)", border: "1px solid var(--border)" }}
       >
         <h2 className="text-2xl font-extrabold" style={{ color: "var(--fg)" }}>
-          Marketplace Solidario
+          Quiero Ayudar
         </h2>
         <p className="max-w-xl text-sm" style={{ color: "var(--muted)" }}>
           Conecta a quien necesita ayuda con personas, empresas, ONG, iglesias, voluntarios e
@@ -317,10 +321,10 @@ export function MarketplaceView() {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (
-            <ProviderCard key={p.id} provider={p} userLoc={userLoc} />
+            <ProviderCard key={p.id} provider={p} userLoc={userLoc} onOpen={() => setSelected({ kind: "provider", data: p })} />
           ))}
           {filteredNeeds.map((n) => (
-            <NeedEntryCard key={n.id} entry={n} userLoc={userLoc} />
+            <NeedEntryCard key={n.id} entry={n} userLoc={userLoc} onOpen={() => setSelected({ kind: "need", data: n })} />
           ))}
         </div>
       )}
@@ -359,18 +363,32 @@ export function MarketplaceView() {
           }}
         />
       )}
+
+      {selected && <MarketplaceDetailPanel item={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
 
-function ProviderCard({ provider: p, userLoc }: { provider: AidProvider; userLoc: { lat: number; lng: number } | null }) {
+function ProviderCard({
+  provider: p,
+  userLoc,
+  onOpen,
+}: {
+  provider: AidProvider;
+  userLoc: { lat: number; lng: number } | null;
+  onOpen: () => void;
+}) {
   const k = KIND_CONFIG[p.kind];
   const wa = p.whatsapp ? waLink(p.whatsapp) : null;
   const dist = userLoc ? distanceKm(userLoc, p) : null;
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-2xl border p-4"
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
+      className="flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 text-left"
       style={{ borderColor: "var(--border)", background: "var(--surface)" }}
     >
       <div className="flex items-start gap-3">
@@ -418,7 +436,7 @@ function ProviderCard({ provider: p, userLoc }: { provider: AidProvider; userLoc
       )}
       {p.notes && <p className="text-xs" style={{ color: "var(--fg-2)" }}>{p.notes}</p>}
 
-      <div className="mt-auto flex flex-wrap gap-2 pt-1">
+      <div className="mt-auto flex flex-wrap gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
         {wa && (
           <a
             href={wa}
@@ -453,13 +471,25 @@ function ProviderCard({ provider: p, userLoc }: { provider: AidProvider; userLoc
   );
 }
 
-function NeedEntryCard({ entry: n, userLoc }: { entry: NeedEntry; userLoc: { lat: number; lng: number } | null }) {
+function NeedEntryCard({
+  entry: n,
+  userLoc,
+  onOpen,
+}: {
+  entry: NeedEntry;
+  userLoc: { lat: number; lng: number } | null;
+  onOpen: () => void;
+}) {
   const wa = n.whatsapp ? waLink(n.whatsapp) : null;
   const dist = userLoc && n.lat != null && n.lng != null ? distanceKm(userLoc, { lat: n.lat, lng: n.lng }) : null;
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-2xl border p-4"
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
+      className="flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 text-left"
       style={{ borderColor: "var(--border)", background: "var(--surface)" }}
     >
       <div className="flex items-start gap-3">
@@ -469,7 +499,8 @@ function NeedEntryCard({ entry: n, userLoc }: { entry: NeedEntry; userLoc: { lat
         <div className="min-w-0 flex-1">
           <div className="truncate text-base font-extrabold" style={{ color: "var(--fg)" }}>{n.name}</div>
           <div className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
-            Necesidad humanitaria{n.place ? ` · ${n.place}` : ""}
+            {n.source === "reporte" ? "Reportado en el mapa" : "Necesidad humanitaria"}
+            {n.place ? ` · ${n.place}` : ""}
           </div>
           {dist != null && (
             <div className="text-xs font-bold" style={{ color: "var(--accent)" }}>
@@ -506,7 +537,7 @@ function NeedEntryCard({ entry: n, userLoc }: { entry: NeedEntry; userLoc: { lat
 
       {n.notes && <p className="text-xs" style={{ color: "var(--fg-2)" }}>{n.notes}</p>}
 
-      <div className="mt-auto flex flex-wrap gap-2 pt-1">
+      <div className="mt-auto flex flex-wrap gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
         {wa && (
           <a
             href={wa}

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { uploadPhoto } from "@/lib/reports";
+import { MediaItem } from "@/lib/types";
 import {
   Availability,
   NewProvider,
@@ -30,12 +32,26 @@ export function QuieroAyudarForm({ onClose, onSaved }: { onClose: () => void; on
   const [availableFrom, setAvailableFrom] = useState(todayISO());
   const [schedule, setSchedule] = useState("");
   const [notes, setNotes] = useState("");
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
   function toggle(list: string[], set: (v: string[]) => void, key: string) {
     set(list.includes(key) ? list.filter((k) => k !== key) : [...list, key]);
+  }
+
+  async function handlePhoto(file: File) {
+    setUploading(true);
+    try {
+      const url = await uploadPhoto(file);
+      setMedia((m) => [...m, { kind: "foto", url }]);
+    } catch {
+      setError("No se pudo subir la foto. Intenta de nuevo.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function submit() {
@@ -52,7 +68,7 @@ export function QuieroAyudarForm({ onClose, onSaved }: { onClose: () => void; on
       lat: coords.lat, lng: coords.lng, place: placeText,
       radius_km: radius, offers, needs, quantity, availability,
       available_from: availability === "programada" ? availableFrom : null,
-      schedule, notes,
+      schedule, notes, media,
     };
     setSaving(true);
     try {
@@ -222,6 +238,37 @@ export function QuieroAyudarForm({ onClose, onSaved }: { onClose: () => void; on
             className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
             style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--fg)" }}
           />
+        </Field>
+
+        <Field label="Fotos (opcional)">
+          <label
+            className="flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border border-dashed p-4 text-xs font-bold"
+            style={{ borderColor: "var(--border)", color: "var(--fg-2)" }}
+          >
+            <input
+              type="file"
+              aria-label="Subir foto"
+              accept="image/*"
+              disabled={uploading}
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && handlePhoto(e.target.files[0])}
+            />
+            <span className="text-xl">📷</span>
+            {uploading ? "Subiendo..." : "Agregar foto"}
+          </label>
+          {media.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {media.map((m, i) => (
+                <span
+                  key={i}
+                  className="rounded-lg px-2.5 py-1 text-xs font-bold"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  📷 Foto {i + 1}
+                </span>
+              ))}
+            </div>
+          )}
         </Field>
 
         {error && (
